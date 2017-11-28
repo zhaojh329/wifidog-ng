@@ -1,10 +1,10 @@
-# wifidog-ng
+# WifiDog-ng
 
 ![](https://img.shields.io/badge/license-GPLV3-brightgreen.svg?style=plastic "License")
 
-next generation wifidog
+Next generation WifiDog
 
-wifidog-ng is a very efficient captive portal solution for wireless router which with
+WifiDog-ng is a very efficient captive portal solution for wireless router which with
 embedded linux(LEDE/Openwrt) system. 
 
 It's referenced wifidog and apfree_wifidog, and it's a whole new one captive portal solution.
