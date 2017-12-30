@@ -1,2 +1,2 @@
-wifi-portal-objs := main.o tip.o terminal.o
-obj-m := wifi-portal.o
+wifidog-objs := main.o tip.o terminal.o
+obj-m := wifidog.o
