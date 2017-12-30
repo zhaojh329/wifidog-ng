@@ -9,3 +9,8 @@ set(EXTRA_LIBS ${LIBUHTTPD_LIBRARY} ${LIBUBOX_LIBRARY})
 
 add_executable(wifidog-ng main.c)
 target_link_libraries(wifidog-ng ${EXTRA_LIBS})
+
+install(
+    TARGETS wifidog-ng
+    RUNTIME DESTINATION bin
+)
