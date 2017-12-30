@@ -14,5 +14,5 @@ embedded linux(LEDE/Openwrt) system.
 * Compatible with original [WifiDog] protocol
 * Based on [libubox]: Single threaded, Fully asynchronous, No blocking operation at all
 * Writing kernel module to implement authentication management instead of using iptables to create firewall rules
-* Support HTTPS: Alternative OpenSSL and CyaSSl(wolfssl)
+* Support HTTPS: OpenSSL, mbedtls and CyaSSl(wolfssl)
 * Support UBUS
