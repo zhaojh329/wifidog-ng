@@ -1,15 +1,9 @@
 /*
- * Copyright (C) 2017 jianhui zhao <jianhuizhao329@gmail.com>
+ *	Copyright (C) 2017 jianhui zhao <jianhuizhao329@gmail.com>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *	This program is free software; you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License version 2 as
+ *	published by the Free Software Foundation.
  */
 
 #include <linux/init.h>
@@ -20,6 +14,7 @@
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <linux/inetdevice.h>
+#include <net/arp.h>
 #include <net/netfilter/nf_nat.h>
 #include <net/netfilter/nf_nat_l3proto.h>
 
@@ -29,8 +24,8 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 
-#include "terminal.h"
-#include "tip.h"
+#include "term_manage.h"
+#include "ip_manage.h"
 
 #define IPS_HIJACKED	(1 << 31)
 #define IPS_ALLOWED		(1 << 30)
@@ -132,9 +127,10 @@ static ssize_t proc_config_write(struct file *file, const char __user *buf, size
 		if (delim)
 			*delim++ = 0;
 		
-		if (!strcmp(key, "enabled"))
+		if (!strcmp(key, "enabled")) {
 			wifidog_enabled = simple_strtol(value, NULL, 0);
-		else if (!strcmp(key, "interface")) {
+			update_gw_interface(gw_interface);
+		} else if (!strcmp(key, "interface")) {
 			strncpy(gw_interface, value, sizeof(gw_interface));
 			update_gw_interface(gw_interface);
 		} else if (!strcmp(key, "port")) {
@@ -207,7 +203,7 @@ static u32 wifidog_hook(void *priv, struct sk_buff *skb, const struct nf_hook_st
 	if ((iph->saddr | ~gw_interface_mask) != gw_interface_broadcast)
 		return NF_ACCEPT;
 
-	term = find_term_by_ip(iph->saddr);
+	term = find_term_by_mac(ehdr->h_source);
 	if (likely(term)) {
 		term->flags |= TERM_ACTIVE;
 	} else {
@@ -228,7 +224,7 @@ static u32 wifidog_hook(void *priv, struct sk_buff *skb, const struct nf_hook_st
 
 	if ((ct->status & IPS_HIJACKED) || (ct->status & IPS_ALLOWED)) {
 		return NF_ACCEPT;
-	} else if (ctinfo == IP_CT_NEW && (trusted_ip(iph->daddr) || term_is_authd(iph->saddr))) {
+	} else if (ctinfo == IP_CT_NEW && (allowed_dest_ip(iph->daddr) || term_is_authd(ehdr->h_source))) {
 		ct->status |= IPS_ALLOWED;
 		return NF_ACCEPT; 
 	}
@@ -270,6 +266,7 @@ static u32 wifidog_hook(void *priv, struct sk_buff *skb, const struct nf_hook_st
 
 static u32 term_statistic_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 {
+	struct ethhdr *ehdr = eth_hdr(skb);
 	struct iphdr *iph = ip_hdr(skb);
 	struct terminal *term = NULL;
 	__be32 saddr, daddr;
@@ -295,13 +292,16 @@ static u32 term_statistic_hook(void *priv, struct sk_buff *skb, const struct nf_
 		return NF_ACCEPT;
 
 	if (from_lan) {
-		term = find_term_by_ip(saddr);
+		term = find_term_by_mac(ehdr->h_source);
 		if (unlikely(!term))
 			return NF_ACCEPT;
 	} else if (to_lan) {
-		term = find_term_by_ip(daddr);
-		if (unlikely(!term))
-			return NF_ACCEPT;
+		struct neighbour *n = __ipv4_neigh_lookup_noref(state->out, daddr);
+		if (n) {
+			term = find_term_by_mac(n->ha);
+			if (unlikely(!term))
+				return NF_ACCEPT;
+		}
 	}
 
 	/* Upload */
@@ -354,9 +354,9 @@ static int __init wifidog_init(void)
 		goto remove_config;
 	}
 	
-	ret = tip_init(proc);
+	ret = ip_manage_init(proc);
 	if (ret) {
-		pr_err("tip_init failed\n");
+		pr_err("ip_manage_init failed\n");
 		goto free_term;
 	}
 
@@ -371,7 +371,7 @@ static int __init wifidog_init(void)
 	return 0;
 
 free_tip:
-	tip_free(proc);
+	ip_manage_free(proc);
 free_term:
 	term_free(proc);
 remove_config:	
@@ -384,7 +384,7 @@ remove:
 static void __exit wifidog_exit(void)
 {
 	term_free(proc);
-	tip_free(proc);
+	ip_manage_free(proc);
 	
 	remove_proc_entry("config", proc);
 	remove_proc_entry("wifidog", NULL);

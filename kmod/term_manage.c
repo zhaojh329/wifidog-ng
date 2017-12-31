@@ -1,15 +1,9 @@
 /*
- * Copyright (C) 2017 jianhui zhao <jianhuizhao329@gmail.com>
+ *	Copyright (C) 2017 jianhui zhao <jianhuizhao329@gmail.com>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *	This program is free software; you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License version 2 as
+ *	published by the Free Software Foundation.
  */
 
 #include <linux/slab.h>
@@ -20,58 +14,55 @@
 #include <linux/etherdevice.h>
 #include <linux/inet.h>
 #include <linux/jhash.h>
-#include "terminal.h"
+#include "term_manage.h"
 
 #define TERM_TTL					60
 #define TERM_HASH_SIZE 				(1 << 8)
 
 static u32 hash_rnd __read_mostly;
-static rwlock_t term_ip_lock;
-static struct hlist_head term_ip_hash_table[TERM_HASH_SIZE];
+static rwlock_t term_lock;
+static struct hlist_head term_mac_hash_table[TERM_HASH_SIZE];
 static struct kmem_cache *term_cache __read_mostly;
 
-static inline u32 term_ip_hash4(__be32 ip)
+static inline int term_mac_hash(const u8 *mac)
 {
-	return jhash_1word((__force u32)ip, hash_rnd) & (TERM_HASH_SIZE - 1);
+	/* use 1 byte of OUI and 3 bytes of NIC */
+	u32 key = get_unaligned((u32 *)(mac + 2));
+	return jhash_1word(key, hash_rnd) & (TERM_HASH_SIZE - 1);
 }
 
-static int term_mark_authed(__be32 ip)
+static int term_mark(const u8 *mac, int authed)
 {
 	struct terminal *term;
-	u32 hash = term_ip_hash4(ip);
+	u32 hash = term_mac_hash(mac);
 
-	read_lock_bh(&term_ip_lock);
-	hlist_for_each_entry(term, &term_ip_hash_table[hash], node) {
-		if (term->ip == ip) {
-			term->flags |= TERM_AUTHED;
-			read_unlock_bh(&term_ip_lock);
-			return 0;
-		}
-	}
-	read_unlock_bh(&term_ip_lock);
-	return -1;
-}
-
-static int term_mark_denied(__be32 ip)
-{
-	struct terminal *term;
-	u32 hash = term_ip_hash4(ip);
-
-	read_lock_bh(&term_ip_lock);
-	hlist_for_each_entry(term, &term_ip_hash_table[hash], node) {
-		if (term->ip == ip) {
+	write_lock_bh(&term_lock);
+	hlist_for_each_entry(term, &term_mac_hash_table[hash], node) {
+		if (ether_addr_equal(term->mac, mac)) {
 			term->flags &= ~TERM_AUTHED;
-			read_unlock_bh(&term_ip_lock);
+			if (authed)
+				term->flags |= TERM_AUTHED;
+			write_unlock_bh(&term_lock);
 			return 0;
 		}
 	}
-	read_unlock_bh(&term_ip_lock);
+	write_unlock_bh(&term_lock);
 	return -1;
 }
 
-int term_is_authd(__be32 ip)
+static inline int term_mark_authed(const u8 *mac)
 {
-	struct terminal *term = find_term_by_ip(ip);
+	return term_mark(mac, TERM_AUTHED);
+}
+
+static inline int term_mark_denied(const u8 *mac)
+{
+	return term_mark(mac, 0);
+}
+
+int term_is_authd(const u8 *mac)
+{
+	struct terminal *term = find_term_by_mac(mac);
 	if (term && (term->flags & TERM_AUTHED))
 		return 1;
 	return 0;
@@ -87,9 +78,9 @@ static void term_clear(void)
 	if (!term_cache)
 		return;
 	
-	write_lock_bh(&term_ip_lock);
+	write_lock_bh(&term_lock);
 	for (i = 0; i != TERM_HASH_SIZE; i++) {
-		chain = &term_ip_hash_table[i];
+		chain = &term_mac_hash_table[i];
 		hlist_for_each_entry_safe(pos, next, chain, node) {
 			hlist_del(&pos->node);
 			del_timer(&pos->expires);
@@ -97,12 +88,12 @@ static void term_clear(void)
 		}
 
 	}
-	write_unlock_bh(&term_ip_lock);
+	write_unlock_bh(&term_lock);
 }
 
 static void *term_seq_start(struct seq_file *s, loff_t *pos)
 {
-	read_lock_bh(&term_ip_lock);
+	read_lock_bh(&term_lock);
 
 	if (*pos == 0)
 		return SEQ_START_TOKEN;
@@ -110,7 +101,7 @@ static void *term_seq_start(struct seq_file *s, loff_t *pos)
 	if (*pos >= TERM_HASH_SIZE)
 		return NULL;
 
-	return &term_ip_hash_table[*pos];
+	return &term_mac_hash_table[*pos];
 }
 
 static void *term_seq_next(struct seq_file *s, void *v, loff_t *pos)
@@ -124,12 +115,12 @@ static void *term_seq_next(struct seq_file *s, void *v, loff_t *pos)
 		return NULL;
 	}
 
-	return &term_ip_hash_table[*pos];
+	return &term_mac_hash_table[*pos];
 }
 
 static void term_seq_stop(struct seq_file *s, void *v)
 {
-	read_unlock_bh(&term_ip_lock);
+	read_unlock_bh(&term_lock);
 }
 
 static int term_seq_show(struct seq_file *s, void *v)
@@ -184,20 +175,20 @@ static ssize_t proc_term_write(struct file *file, const char __user *buf, size_t
 	if (!strncmp(data, "clear", 5))
 		term_clear();
 	else {
-		__be32 addr;
+		u8 mac[ETH_ALEN];
 		char op;
 		
-		if (!in4_pton(data + 1, -1, (u8 *)&addr, -1, NULL)) {
-			pr_err("invalid format: %s\n", data);
+		if (sscanf(data + 1 , "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) != ETH_ALEN) {
+			pr_err("invalid macaddr format: %s\n", data);
 			goto QUIT;
 		}
 		
 		op = data[0];
 		
 		if (op == '+')
-			term_mark_authed(addr);
+			term_mark_authed(mac);
 		else if (op == '-')
-			term_mark_denied(addr);
+			term_mark_denied(mac);
 		else
 			pr_err("invalid format: %s\n", data);
 	}
@@ -225,9 +216,9 @@ static void term_timer_timeout(unsigned long ptr)
 	struct terminal *term = (struct terminal *)ptr;
 
 	if (!(term->flags & TERM_ACTIVE)) {
-		write_lock_bh(&term_ip_lock);
+		write_lock_bh(&term_lock);
 		hlist_del(&term->node);
-		write_unlock_bh(&term_ip_lock);		
+		write_unlock_bh(&term_lock);		
 		kmem_cache_free(term_cache, term);
 	} else {
 		term->active &= ~TERM_ACTIVE;
@@ -248,26 +239,26 @@ static struct terminal *term_alloc(void)
 	return term;
 }
 
-struct terminal *find_term_by_ip(__be32 ip)
+struct terminal *find_term_by_mac(const u8 *mac)
 {
 	struct terminal *term;
-	u32 hash = term_ip_hash4(ip);
+	u32 hash = term_mac_hash(mac);
 
-	read_lock_bh(&term_ip_lock);
-	hlist_for_each_entry(term, &term_ip_hash_table[hash], node) {
-		if (term->ip == ip) {
-			read_unlock_bh(&term_ip_lock);
+	read_lock_bh(&term_lock);
+	hlist_for_each_entry(term, &term_mac_hash_table[hash], node) {
+		if (ether_addr_equal(term->mac, mac)) {
+			read_unlock_bh(&term_lock);
 			return term;
 		}
 	}
-	read_unlock_bh(&term_ip_lock);
+	read_unlock_bh(&term_lock);
 	return NULL;
 }
 
 int add_term(u8 *mac, __be32 ip)
 {
 	struct terminal *term = NULL;
-	u32 hash = term_ip_hash4(ip);
+	u32 hash = term_mac_hash(mac);
 	
 	term = term_alloc();
 	if (!term)
@@ -279,9 +270,9 @@ int add_term(u8 *mac, __be32 ip)
 
 	setup_timer(&term->expires, term_timer_timeout, (unsigned long)term);
 	
-	write_lock_bh(&term_ip_lock);
-	hlist_add_head(&term->node, &term_ip_hash_table[hash]);
-	write_unlock_bh(&term_ip_lock);
+	write_lock_bh(&term_lock);
+	hlist_add_head(&term->node, &term_mac_hash_table[hash]);
+	write_unlock_bh(&term_lock);
 
 	term_timer_refresh(term, TERM_TTL);
 	
@@ -294,10 +285,10 @@ int term_init(struct proc_dir_entry *proc)
 
 	net_get_random_once(&hash_rnd, sizeof(hash_rnd));
 
-	rwlock_init(&term_ip_lock);
+	rwlock_init(&term_lock);
 
 	for (i = 0; i < TERM_HASH_SIZE; i++) {
-		INIT_HLIST_HEAD(&term_ip_hash_table[i]);
+		INIT_HLIST_HEAD(&term_mac_hash_table[i]);
 	}
 	
 	term_cache = kmem_cache_create("term_cache", sizeof(struct terminal), 0, 0, NULL);
@@ -323,4 +314,3 @@ void term_free(struct proc_dir_entry *proc)
 	remove_proc_entry("term", proc);
 	kmem_cache_destroy(term_cache);
 }
-
