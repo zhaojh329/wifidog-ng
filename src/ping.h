@@ -15,14 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _HTTPGET_H
-#define _HTTPGET_H
+#ifndef _PING_H
+#define _PING_H
 
-#include <uhttpd/uhttpd.h>
-#include <libubox/uclient.h>
-
-typedef void (*httpget_cb)(void *data, char *content);
-
-int httpget(httpget_cb cb, void *data, const char *url, ...);
+void start_heartbeat();
 
 #endif

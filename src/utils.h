@@ -20,16 +20,13 @@
 
 #include <stdbool.h>
 
-char *get_iface_ip(const char *ifname);
-char *get_iface_mac(const char *ifname);
+int get_iface_ip(const char *ifname, char *dst, int len);
+int get_iface_mac(const char *ifname, char *dst, int len);
+int arp_get(const char *ifname, const char *ip, char *dst, int len);
 
-char *arp_get(const char *ifname, const char *ip);
-
-void start_heartbeat();
-
-void enable_kmod(bool enable);
-
-void allow_termianl(const char *mac);
-void allow_destip(const char *ip);
+int enable_kmod(bool enable);
+int allow_termianl(const char *mac);
+int deny_termianl(const char *mac);
+int allow_destip(const char *ip);
 
 #endif

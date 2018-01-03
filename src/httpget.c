@@ -17,21 +17,40 @@
 
 #include "httpget.h"
 
+#define MAC_CONTENT_SIZE    1024
+
 struct uclient_param {
     httpget_cb cb;
     void *data;
-    char body[256];
+    int content_len;
+    char *content;
 };
 
 static void _uclient_free(struct uclient *cl)
 {
-    free(cl->priv);
+    struct uclient_param *param = cl->priv;
+    if (param)
+        free(param->content);
+    free(param);
     uclient_free(cl);
 }
 
 static void header_done_cb(struct uclient *cl)
 {
-	printf("status_code = %d\n", cl->status_code);
+    struct uclient_param *param = cl->priv;
+    
+	if (cl->status_code != 200)
+        goto err;
+
+    param->content = calloc(1, MAC_CONTENT_SIZE + 1);
+    if (param->content)
+        return;
+    uh_log_err("calloc");
+    
+err:
+    if (param->cb)
+        param->cb(param->data, NULL);
+    _uclient_free(cl);
 }
 
 static void read_data_cb(struct uclient *cl)
@@ -40,9 +59,17 @@ static void read_data_cb(struct uclient *cl)
 	int len;
 
 	while (1) {
-		len = uclient_read(cl, param->body, sizeof(param->body));
+        if (param->content_len == MAC_CONTENT_SIZE) {
+            if (param->cb)
+                param->cb(param->data, NULL);
+            _uclient_free(cl);
+            return;
+        }
+        
+		len = uclient_read(cl, param->content + param->content_len, MAC_CONTENT_SIZE - param->content_len);
 		if (len <= 0)
 			return;
+        param->content_len += len;
 	}
 }
 
@@ -54,7 +81,7 @@ static void eof_cb(struct uclient *cl)
         struct uclient_param *param = cl->priv;
 
         if (param->cb)
-            param->cb(param->data, param->body);
+            param->cb(param->data, param->content);
     }
 	_uclient_free(cl);
 }

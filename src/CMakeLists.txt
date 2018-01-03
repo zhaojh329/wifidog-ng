@@ -7,7 +7,7 @@ find_package(Libuhttpd REQUIRED)
 include_directories(${LIBUHTTPD_INCLUDE_DIR} ${LIBUBOX_INCLUDE_DIR})
 set(EXTRA_LIBS ${LIBUHTTPD_LIBRARY} ${LIBUBOX_LIBRARY} uci uclient)
 
-add_executable(wifidog-ng gateway.c http.c utils.c config.c httpget.c)
+add_executable(wifidog-ng gateway.c auth.c utils.c config.c httpget.c ping.c)
 target_link_libraries(wifidog-ng ${EXTRA_LIBS})
 
 install(

@@ -15,11 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _HTTP_H
-#define _HTTP_H
+#ifndef _AUTH_H
+#define _AUTH_H
 
-#include <stdbool.h>
-
-int http_init(const char *port, bool ssl);
+int auth_init();
 
 #endif

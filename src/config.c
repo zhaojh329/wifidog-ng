@@ -18,6 +18,7 @@
 #include "config.h"
 #include "utils.h"
 #include <uci_blob.h>
+#include <uhttpd/uhttpd.h>
 
 static struct blob_buf b;
 
@@ -56,7 +57,7 @@ static const struct blobmsg_policy gateway_attrs[GATEWAY_ATTR_MAX] = {
 	[GATEWAY_ATTR_CHECKINTERVAL] = { .name = "checkinterval", .type = BLOBMSG_TYPE_INT32 }
 };
 
-const struct uci_blob_param_list gateway_attr_list = {
+static const struct uci_blob_param_list gateway_attr_list = {
 	.n_params = GATEWAY_ATTR_MAX,
 	.params = gateway_attrs,
 };
@@ -157,9 +158,14 @@ int parse_config()
     struct uci_context *ctx = uci_alloc_context();
     struct uci_package *p = NULL;
     struct uci_element *e;
+    char buf[128];
     
-    uci_load(ctx, "wifidog", &p);
-    
+    if (uci_load(ctx, "wifidog", &p) || !p) {
+        uh_log_err("Load config wifidog failed");
+        uci_free_context(ctx);
+        return -1;
+    }
+
     uci_foreach_element(&p->sections, e) {
         struct uci_section *s = uci_to_section(e);
         if (!strcmp(s->type, "gateway"))
@@ -170,12 +176,22 @@ int parse_config()
 
     blob_buf_free(&b);
     uci_free_context(ctx);
+    
+    if (!conf.gw_id) {
+        if (get_iface_mac(conf.gw_interface, buf, sizeof(buf)) < 0) {
+            uci_free_context(ctx);
+            return -1;
+        }
+        conf.gw_id = strdup(buf);
+    }
 
-    if (!conf.gw_id)
-        conf.gw_id = strdup(get_iface_mac(conf.gw_interface));
-
-    if (!conf.gw_address)
-        conf.gw_address = strdup(get_iface_ip(conf.gw_interface));
+    if (!conf.gw_address) {
+        if (get_iface_ip(conf.gw_interface, buf, sizeof(buf)) < 0) {
+            uci_free_context(ctx);
+            return -1;
+        }
+        conf.gw_address = strdup(buf);
+    }
     
     return 0;
 }
@@ -184,5 +200,4 @@ struct config *get_config()
 {
     return &conf;
 }
-
 

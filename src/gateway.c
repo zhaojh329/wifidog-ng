@@ -15,41 +15,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <signal.h>
 #include <uhttpd/uhttpd.h>
-#include <string.h>
-#include <stdio.h>
-#include "http.h"
-#include "utils.h"
+
 #include "config.h"
+#include "auth.h"
+
+static void signal_handle(int sig)
+{
+	if (sig == SIGINT) {
+		uloop_done();
+    }
+}
 
 int main(int argc, char **argv)
 {
-    char buf[128] = "";
-    struct config *conf = get_config();
+    if (parse_config())
+        return -1;
+
+    signal(SIGINT, signal_handle);
     
-    uh_log_debug("libuhttpd version: %s", UHTTPD_VERSION_STRING);
+    uloop_init();
 
-    parse_config();
-
-    uloop_init();
-
-    sprintf(buf, "%d", conf->gw_port);
-    http_init(buf, false);
-    
-#if (UHTTPD_SSL_SUPPORT)
-    sprintf(buf, "%d", conf->gw_ssl_port);
-    http_init(buf, true);
-#endif
-
-    allow_destip(conf->authserver.host);
-
-    start_heartbeat();
-
-    enable_kmod(true);
+    auth_init();
     
     uloop_run();
 
-    uloop_done();
+    uh_log_debug("wifidog-ng exit.");
     
     return 0;
 }
