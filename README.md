@@ -27,6 +27,26 @@ embedded linux(LEDE/Openwrt) system.
 * [libuclient]
 * [libuci]
 
+# How to use
+add new feed into "feeds.conf.default":
+
+    src-git libuhttpd https://github.com/zhaojh329/libuhttpd-feed.git
+    src-git wifidog https://github.com/zhaojh329/wifidog-ng-feed.git
+
+Install wifidog-ng packages:
+
+    ./scripts/feeds update wifidog
+    ./scripts/feeds install -a -p wifidog
+
+Select package wifidog-ng in menuconfig and compile new image.
+
+    Network  --->
+        Captive Portals  --->
+            <*> wifidog-ng-mbedtls.................................... wifidog-ng (mbedtls)
+            < > wifidog-ng-nossl....................................... wifidog-ng (NO SSL)
+            < > wifidog-ng-openssl.................................... wifidog-ng (openssl)
+            < > wifidog-ng-wolfssl.................................... wifidog-ng (wolfssl)
+
 # Contributing
 If you would like to help making [wifidog-ng](https://github.com/zhaojh329/wifidog-ng) better,
 see the [CONTRIBUTING.md](https://github.com/zhaojh329/wifidog-ng/blob/master/CONTRIBUTING.md) file.
