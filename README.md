@@ -35,7 +35,7 @@ add new feed into "feeds.conf.default":
 
 Install wifidog-ng packages:
 
-    ./scripts/feeds update wifidog
+    ./scripts/feeds update libuhttpd wifidog
     ./scripts/feeds install -a -p wifidog
 
 Select package wifidog-ng in menuconfig and compile new image.
