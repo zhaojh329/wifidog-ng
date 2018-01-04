@@ -3,9 +3,9 @@
 ![](https://img.shields.io/badge/license-GPLV3-brightgreen.svg?style=plastic "License")
 
 [libuhttpd]: https://github.com/zhaojh329/libuhttpd
-[libubox]: https://git.lede-project.org/?p=project/libubox.git
-[libuclient]: https://git.lede-project.org/?p=project/uclient.git
-[libuci]: https://git.lede-project.org/?p=project/uci.git
+[libubox]: https://git.openwrt.org/?p=project/libubox.git
+[libuclient]: https://git.openwrt.org/?p=project/uclient.git
+[libuci]: https://git.openwrt.org/?p=project/uci.git
 [WifiDog]: https://github.com/wifidog/wifidog-gateway
 
 Next generation [WifiDog]
