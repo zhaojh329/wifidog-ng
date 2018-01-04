@@ -15,7 +15,7 @@ embedded linux(LEDE/Openwrt) system.
 
 `Keep Watching for More Actions on This Space`
 
-# features:
+# Features
 * Compatible with original [WifiDog] protocol
 * Based on [libubox]: Single threaded, Fully asynchronous, No blocking operation at all
 * Writing kernel module to implement authentication management instead of using iptables to create firewall rules
