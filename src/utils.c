@@ -16,11 +16,16 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <net/if.h>
+#include <unistd.h>
+#include <errno.h>
 #include <net/if_arp.h>
 #include <sys/ioctl.h>
+#include <arpa/inet.h>
 #include <uhttpd/uhttpd.h>
-#include "utils.h"
+#include <libubox/ulog.h>
+#include "utils.h"       
 
 int get_iface_ip(const char *ifname, char *dst, int len)
 {
@@ -28,7 +33,7 @@ int get_iface_ip(const char *ifname, char *dst, int len)
     int sock = -1;
 
     if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        uh_log_err("socket");
+        ULOG_ERR("socket:%s\n", strerror(errno));
         return -1;
     }
 
@@ -38,7 +43,7 @@ int get_iface_ip(const char *ifname, char *dst, int len)
     strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 
     if (ioctl(sock, SIOCGIFADDR, &ifr) < 0) {
-        uh_log_err("ioctl");
+        ULOG_ERR("ioctl:%s\n", strerror(errno));
         close(sock);
         return -1;
     }
@@ -56,7 +61,7 @@ int get_iface_mac(const char *ifname, char *dst, int len)
     uint8_t *hw;
 
     if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        uh_log_err("socket");
+        ULOG_ERR("socket:%s\n", strerror(errno));
         return -1;
     }
 
@@ -66,7 +71,7 @@ int get_iface_mac(const char *ifname, char *dst, int len)
     strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 
     if (ioctl(sock, SIOCGIFHWADDR, &ifr) < 0) {
-        uh_log_err("ioctl");
+        ULOG_ERR("ioctl:%s\n", strerror(errno));
         close(sock);
         return -1;
     }
@@ -96,12 +101,12 @@ int arp_get(const char *ifname, const char *ip, char *dst, int len)
   
     sock = socket(AF_INET, SOCK_DGRAM, 0);  
     if(sock < 0) {
-        uh_log_err("socket");  
+        ULOG_ERR("socket:%s\n", strerror(errno));  
         return -1;  
     }  
   
     if (ioctl(sock, SIOCGARP, &req) < 0) {
-        uh_log_err("ioctl");  
+        ULOG_ERR("ioctl:%s\n", strerror(errno));  
         close(sock);  
         return -1;  
     }
@@ -118,7 +123,7 @@ int enable_kmod(bool enable)
 {
     FILE *fp = fopen("/proc/wifidog/config", "w");
     if (!fp) {
-        uh_log_err("fopen");
+        ULOG_ERR("fopen:%s\n", strerror(errno));
         return -1;
     }
 
@@ -131,14 +136,14 @@ int allow_termianl(const char *mac)
 {
     FILE *fp = fopen("/proc/wifidog/term", "w");
     if (!fp) {
-        uh_log_err("fopen");
+        ULOG_ERR("fopen:%s\n", strerror(errno));
         return -1;
     }
 
     fprintf(fp, "+%s\n", mac);
     fclose(fp);
 
-    uh_log_debug("allow termianl: %s", mac);
+    ULOG_INFO("allow termianl: %s\n", mac);
     return 0;
 }
 
@@ -146,14 +151,14 @@ int deny_termianl(const char *mac)
 {
     FILE *fp = fopen("/proc/wifidog/term", "w");
     if (!fp) {
-        uh_log_err("fopen");
+        ULOG_ERR("fopen:%s\n", strerror(errno));
         return -1;
     }
 
     fprintf(fp, "-%s\n", mac);
     fclose(fp);
 
-    uh_log_debug("allow termianl: %s", mac);
+    ULOG_INFO("allow termianl: %s\n", mac);
     return 0;
 }
 
@@ -161,14 +166,14 @@ int allow_destip(const char *ip)
 {
     FILE *fp = fopen("/proc/wifidog/ip", "w");
     if (!fp) {
-        uh_log_err("fopen");
+        ULOG_ERR("fopen:%s\n", strerror(errno));
         return -1;
     }
 
     fprintf(fp, "+%s\n", ip);
     fclose(fp);
 
-    uh_log_debug("allow destip: %s", ip);
+    ULOG_INFO("allow destip: %s\n", ip);
 
     return 0;
 }

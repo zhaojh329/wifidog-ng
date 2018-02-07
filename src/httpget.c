@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <libubox/ulog.h>
 #include "httpget.h"
 
 #define MAC_CONTENT_SIZE    1024
@@ -45,7 +46,7 @@ static void header_done_cb(struct uclient *cl)
     param->content = calloc(1, MAC_CONTENT_SIZE + 1);
     if (param->content)
         return;
-    uh_log_err("calloc");
+    ULOG_ERR("calloc:%s\n", strerror(errno));
     
 err:
     if (param->cb)
@@ -76,7 +77,7 @@ static void read_data_cb(struct uclient *cl)
 static void eof_cb(struct uclient *cl)
 {
 	if (!cl->data_eof) {
-		uh_log_err("Connection reset prematurely");
+		ULOG_ERR("Connection reset prematurely\n");
 	} else {
         struct uclient_param *param = cl->priv;
 
@@ -101,7 +102,7 @@ static void handle_uclient_error(struct uclient *cl, int code)
 		break;
 	}
 
-	uh_log_err("Connection error: %s", type);
+	ULOG_ERR("Connection error: %s\n", type);
 	_uclient_free(cl);
 }
 
@@ -125,7 +126,7 @@ int httpget(httpget_cb cb, void *data, const char *url, ...)
     
     cl = uclient_new(buf, NULL, &_cb);
 	if (!cl) {
-		uh_log_err("Failed to allocate uclient context");
+		ULOG_ERR("Failed to allocate uclient context\n");
 		return -1;
 	}
 
@@ -137,12 +138,12 @@ int httpget(httpget_cb cb, void *data, const char *url, ...)
     cl->priv = param;
     
     if (uclient_connect(cl)) {
-        uh_log_err("Failed to establish connection");
+        ULOG_ERR("Failed to establish connection\n");
         goto err;
     }
 
     if (uclient_request(cl)) {
-        uh_log_err("Failed to request");
+        ULOG_ERR("Failed to request\n");
         goto err;
     }
 
@@ -157,4 +158,3 @@ err:
         
     return -1;
 }
-

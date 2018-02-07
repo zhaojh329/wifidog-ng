@@ -17,6 +17,7 @@
 
 #include <sys/sysinfo.h>
 #include <uhttpd/uhttpd.h>
+#include <libubox/ulog.h>
 
 #include "httpget.h"
 #include "config.h"
@@ -25,7 +26,7 @@ static time_t start_time;
 
 static void ping_cb(void *data, char *body)
 {
-    uh_log_debug("Ping Auth Server: %s", body);
+    ULOG_INFO("Ping Auth Server: %s\n", body);
 }
 
 static void ping(struct uloop_timeout *t)
@@ -38,7 +39,7 @@ static void ping(struct uloop_timeout *t)
     memset(&info, 0, sizeof(info));
     
     if (sysinfo(&info) < 0) {
-        uh_log_err("sysinfo");
+        ULOG_ERR("sysinfo:%s\n", strerror(errno));
         return;
     }
 

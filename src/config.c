@@ -18,6 +18,7 @@
 #include "config.h"
 #include "utils.h"
 #include <uci_blob.h>
+#include <libubox/ulog.h>
 #include <uhttpd/uhttpd.h>
 
 static struct blob_buf b;
@@ -161,7 +162,7 @@ int parse_config()
     char buf[128];
     
     if (uci_load(ctx, "wifidog", &p) || !p) {
-        uh_log_err("Load config wifidog failed");
+        ULOG_ERR("Load config wifidog failed\n");
         uci_free_context(ctx);
         return -1;
     }

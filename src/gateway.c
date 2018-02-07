@@ -15,33 +15,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <signal.h>
+#include <libubox/ulog.h>
 #include <uhttpd/uhttpd.h>
 
 #include "config.h"
 #include "auth.h"
 
-static void signal_handle(int sig)
-{
-	if (sig == SIGINT) {
-		uloop_done();
-    }
-}
-
 int main(int argc, char **argv)
 {
     if (parse_config())
         return -1;
-
-    signal(SIGINT, signal_handle);
     
-    uloop_init();
+    uloop_init();
 
     auth_init();
     
     uloop_run();
 
-    uh_log_debug("wifidog-ng exit.");
+    ULOG_INFO("wifidog-ng exit.\n");
     
     return 0;
 }

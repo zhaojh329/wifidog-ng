@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <libubox/ulog.h>
+
 #include "auth.h"
 #include "utils.h"
 #include "ping.h"
@@ -30,12 +32,12 @@ static void authserver_request_cb(void *data, char *content)
     int code = -1;
     
     if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
-        uh_log_err("arp_get failed for %s", remote_addr);
+        ULOG_ERR("arp_get failed for %s\n", remote_addr);
         cl->request_done(cl);
         return;
     }
     
-    uh_log_debug("auth cb:%s", content);
+    ULOG_INFO("auth cb:%s\n", content);
 
     if (!content)
         goto deny;
@@ -75,7 +77,7 @@ static void http_callback_404(struct uh_client *cl)
     }
 
     if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
-        uh_log_err("arp_get failed for %s", remote_addr);
+        ULOG_ERR("arp_get failed for %s\n", remote_addr);
         cl->request_done(cl);
         return;
     }
@@ -100,7 +102,7 @@ static void http_callback_auth(struct uh_client *cl)
             cl->header_end(cl);
             cl->chunk_printf(cl, "<h1>Failed to retrieve your MAC address</h1>");
             cl->request_done(cl);
-            uh_log_err("Failed to retrieve MAC address for ip %s", remote_addr);
+            ULOG_ERR("Failed to retrieve MAC address for ip %s\n", remote_addr);
             return;
         }
 
@@ -118,20 +120,19 @@ static void http_callback_auth(struct uh_client *cl)
 
 static int http_init(int port, bool ssl)
 {
-    char buf[128];
     struct uh_server *srv = NULL;
-
-    sprintf(buf, "%d", port);
     
-    srv = uh_server_new("0.0.0.0", buf);
+    srv = uh_server_new("0.0.0.0", port);
     if (!srv)
         goto err;
     
-    uh_log_debug("Listen on: *:%s", buf);
+    ULOG_INFO("Listen on: *:%d\n", port);
 
+#if (UHTTPD_SSL_SUPPORT)
     if (ssl && srv->ssl_init(srv, "/etc/wifidog/wifidog.key", "/etc/wifidog/wifidog.crt"))
         goto err;
-    
+#endif
+
     srv->error404_cb = http_callback_404;
 
     uh_add_action(srv, "/wifidog/auth", http_callback_auth);
@@ -161,4 +162,3 @@ int auth_init()
 
     return 0;
 }
-
