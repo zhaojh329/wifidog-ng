@@ -51,7 +51,7 @@ static void header_done_cb(struct uclient *cl)
 err:
     if (param->cb)
         param->cb(param->data, NULL);
-    _uclient_free(cl);
+    uclient_connect(cl);
 }
 
 static void read_data_cb(struct uclient *cl)
