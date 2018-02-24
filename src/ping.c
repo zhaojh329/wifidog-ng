@@ -26,7 +26,8 @@ static time_t start_time;
 
 static void ping_cb(void *data, char *body)
 {
-    ULOG_INFO("Ping Auth Server: %s\n", body);
+    if (!body || strcmp(body, "Pong"))
+        ULOG_INFO("Auth server did NOT say Pong\n");
 }
 
 static void ping(struct uloop_timeout *t)
