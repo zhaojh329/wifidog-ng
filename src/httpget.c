@@ -39,38 +39,30 @@ static void _uclient_free(struct uclient *cl)
 static void header_done_cb(struct uclient *cl)
 {
     struct uclient_param *param = cl->priv;
-    
-	if (cl->status_code != 200)
-        goto err;
 
     param->content = calloc(1, MAX_CONTENT_SIZE + 1);
     if (param->content)
         return;
     ULOG_ERR("calloc:%s\n", strerror(errno));
-    
-err:
-    if (param->cb)
-        param->cb(param->data, NULL);
-    uclient_connect(cl);
 }
 
 static void read_data_cb(struct uclient *cl)
 {
+    static char buf[1024];
 	struct uclient_param *param = cl->priv;
 	int len;
 
 	while (1) {
-        if (param->content_len == MAX_CONTENT_SIZE) {
-            if (param->cb)
-                param->cb(param->data, NULL);
-            _uclient_free(cl);
-            return;
+        if (param->content_len < MAX_CONTENT_SIZE && param->content) {
+            len = uclient_read(cl, param->content + param->content_len, MAX_CONTENT_SIZE - param->content_len);
+            if (len > 0)
+                param->content_len += len;
+        } else {
+            len = uclient_read(cl, buf, sizeof(buf));
         }
-        
-		len = uclient_read(cl, param->content + param->content_len, MAX_CONTENT_SIZE - param->content_len);
+
 		if (len <= 0)
-			return;
-        param->content_len += len;
+			break;
 	}
 }
 
