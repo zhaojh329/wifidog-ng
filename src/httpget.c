@@ -18,7 +18,7 @@
 #include <libubox/ulog.h>
 #include "httpget.h"
 
-#define MAC_CONTENT_SIZE    1024
+#define MAX_CONTENT_SIZE    1024
 
 struct uclient_param {
     httpget_cb cb;
@@ -43,7 +43,7 @@ static void header_done_cb(struct uclient *cl)
 	if (cl->status_code != 200)
         goto err;
 
-    param->content = calloc(1, MAC_CONTENT_SIZE + 1);
+    param->content = calloc(1, MAX_CONTENT_SIZE + 1);
     if (param->content)
         return;
     ULOG_ERR("calloc:%s\n", strerror(errno));
@@ -60,14 +60,14 @@ static void read_data_cb(struct uclient *cl)
 	int len;
 
 	while (1) {
-        if (param->content_len == MAC_CONTENT_SIZE) {
+        if (param->content_len == MAX_CONTENT_SIZE) {
             if (param->cb)
                 param->cb(param->data, NULL);
             _uclient_free(cl);
             return;
         }
         
-		len = uclient_read(cl, param->content + param->content_len, MAC_CONTENT_SIZE - param->content_len);
+		len = uclient_read(cl, param->content + param->content_len, MAX_CONTENT_SIZE - param->content_len);
 		if (len <= 0)
 			return;
         param->content_len += len;
