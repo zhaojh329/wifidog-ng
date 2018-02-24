@@ -34,78 +34,30 @@ var loginPage = `
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>WiFi Portal认证登录</title>
+    <title>WiFiDog-ng</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+    <style type="text/css">
+        input {
+            width: 278px;
+            height: 18px;
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 15px;
+        }
+    </style>
     <script>
         function load() {
             document.forms[0].action = "/wifidog/login" + window.location.search;
         }
     </script>
-    <style type="text/css">
-        html, body {
-            background-color: #555;
-        }
-
-        html {
-            height: 100%;
-        }
-
-        body {
-            height: 98%;
-        }
-
-        #box {
-            position: absolute;
-            top: 50%;
-            left:50%;
-            margin: -150px 0 0 -150px;
-            width: 300px;
-            height: 300px;
-        }
-
-        #box h1 {
-            color: #fff;
-            text-shadow:0 0 10px;
-            letter-spacing: 1px;
-            text-align: center;
-        }
-
-        #box input {
-            width: 278px;
-            height: 18px;
-            margin-bottom: 10px;
-            outline: none;
-            padding: 10px;
-            font-size: 15px;
-            color: #fff;
-            text-shadow:1px 1px 1px;
-            border-top: 1px solid #312E3D;
-            border-left: 1px solid #312E3D;
-            border-right: 1px solid #312E3D;
-            border-bottom: 1px solid #56536A;
-            border-radius: 4px;
-            background-color: #2D2D3F;
-        }
-
-        .btn {
-            width: 300px;
-            min-height: 20px;
-            background-color: #4a77d4;
-            border: 1px solid #3762bc;
-            color: #fff;
-            padding: 9px 14px;
-            font-size: 20px;
-            border-radius: 5px;
-        }
-    </style>
 </head>
 <body onload="load()">
-    <div id="box">
+    <div style="position: absolute; top: 50%; left:50%; margin: -150px 0 0 -150px; width: 300px; height: 300px;">
         <h1>Login</h1>
         <form method="POST">
             <input type="text" required="required" placeholder="username" name="username"></input>
             <input type="password" required="required" placeholder="password" name="password"></input>
-            <button class="btn" type="submit">Login</button>
+            <button style="width: 300px; min-height: 20px;  padding: 9px 14px; font-size: 20px;" type="submit">Login</button>
         </form>
     </div>
 </body>
@@ -118,68 +70,9 @@ var portalPage = `
     <meta charset="UTF-8">
     <title>WiFi Portal</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
-    <style type="text/css">
-            html, body {
-            background-color: #555;
-        }
-
-        html {
-            height: 100%;
-        }
-
-        body {
-            height: 98%;
-        }
-
-        #box {
-            position: absolute;
-            top: 50%;
-            left:50%;
-            margin: -150px 0 0 -150px;
-            width: 300px;
-            height: 300px;
-        }
-
-        #box h1 {
-            color: #fff;
-            text-shadow:0 0 10px;
-            letter-spacing: 1px;
-            text-align: center;
-        }
-
-        #box input {
-            width: 278px;
-            height: 18px;
-            margin-bottom: 10px;
-            outline: none;
-            padding: 10px;
-            font-size: 15px;
-            color: #fff;
-            text-shadow:1px 1px 1px;
-            border-top: 1px solid #312E3D;
-            border-left: 1px solid #312E3D;
-            border-right: 1px solid #312E3D;
-            border-bottom: 1px solid #56536A;
-            border-radius: 4px;
-            background-color: #2D2D3F;
-        }
-
-        .btn {
-            width: 300px;
-            min-height: 20px;
-            background-color: #4a77d4;
-            border: 1px solid #3762bc;
-            color: #fff;
-            padding: 9px 14px;
-            font-size: 20px;
-            border-radius: 5px;
-        }
-    </style>
 </head>
 <body>
-    <div id="box">
-        <h1>Welcome to WiFi Portal</h1>
-    </div>
+    <h1>Welcome to WiFi Portal</h1>
 </body>
 </html>
 `
