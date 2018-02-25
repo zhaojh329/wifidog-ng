@@ -69,7 +69,7 @@ static void http_callback_404(struct uh_client *cl)
 {
     struct config *conf = get_config();
     const char *remote_addr = cl->get_peer_addr(cl);
-    char mac[13] = "";
+    char mac[18] = "";
     
     if (cl->request.method != UH_HTTP_MSG_GET) {
         cl->request_done(cl);
@@ -95,7 +95,7 @@ static void http_callback_auth(struct uh_client *cl)
     if (token) {
         const char *remote_addr = cl->get_peer_addr(cl);
         const char *logout = cl->get_var(cl, "logout");
-        char mac[13] = "";
+        char mac[18] = "";
 
         if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
             cl->send_header(cl, 200, "OK", -1);
