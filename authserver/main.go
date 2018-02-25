@@ -36,15 +36,6 @@ var loginPage = `
     <meta charset="UTF-8">
     <title>WiFiDog-ng</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
-    <style type="text/css">
-        input {
-            width: 278px;
-            height: 18px;
-            margin-bottom: 10px;
-            padding: 10px;
-            font-size: 15px;
-        }
-    </style>
     <script>
         function load() {
             document.forms[0].action = "/wifidog/login" + window.location.search;
@@ -55,8 +46,6 @@ var loginPage = `
     <div style="position: absolute; top: 50%; left:50%; margin: -150px 0 0 -150px; width: 300px; height: 300px;">
         <h1>Login</h1>
         <form method="POST">
-            <input type="text" required="required" placeholder="username" name="username"></input>
-            <input type="password" required="required" placeholder="password" name="password"></input>
             <button style="width: 300px; min-height: 20px;  padding: 9px 14px; font-size: 20px;" type="submit">Login</button>
         </form>
     </div>
