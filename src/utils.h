@@ -24,7 +24,7 @@ int get_iface_ip(const char *ifname, char *dst, int len);
 int get_iface_mac(const char *ifname, char *dst, int len);
 int arp_get(const char *ifname, const char *ip, char *dst, int len);
 
-int enable_kmod(bool enable);
+int enable_kmod(bool enable, const char *interface, int port, int ssl_port);
 int allow_termianl(const char *mac);
 int deny_termianl(const char *mac);
 int allow_destip(const char *ip);

@@ -158,7 +158,7 @@ int auth_init()
 
     allow_destip(conf->authserver.host);
     start_heartbeat();
-    enable_kmod(true);
+    enable_kmod(true, conf->gw_interface, conf->gw_port, conf->gw_ssl_port);
 
     return 0;
 }

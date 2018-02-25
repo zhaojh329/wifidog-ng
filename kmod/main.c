@@ -99,6 +99,7 @@ static ssize_t proc_config_write(struct file *file, const char __user *buf, size
 	char data[128];
 	char *delim, *key;
 	const char *value;
+	int update = 0;
 	
 	if (size == 0)
 		return -EINVAL;
@@ -123,16 +124,18 @@ static ssize_t proc_config_write(struct file *file, const char __user *buf, size
 		*delim++ = 0;
 		value = delim;
 		
-		delim = strchr(value, ' ');
+		delim = strchr(value, '\n');
 		if (delim)
 			*delim++ = 0;
 		
 		if (!strcmp(key, "enabled")) {
 			wifidog_enabled = simple_strtol(value, NULL, 0);
-			update_gw_interface(gw_interface);
+			if (wifidog_enabled)
+				update = 1;
+			pr_info("wifidog %s\n", wifidog_enabled ? "enabled" : "disabled");
 		} else if (!strcmp(key, "interface")) {
 			strncpy(gw_interface, value, sizeof(gw_interface));
-			update_gw_interface(gw_interface);
+			update = 1;
 		} else if (!strcmp(key, "port")) {
 			gw_port = simple_strtol(value, NULL, 0);
 		} else if (!strcmp(key, "ssl_port")) {
@@ -143,7 +146,9 @@ static ssize_t proc_config_write(struct file *file, const char __user *buf, size
 		
 		key = delim;
 	}
-			
+
+	if (update)
+		update_gw_interface(gw_interface);
 	return size;
 }
 
@@ -333,8 +338,6 @@ static struct nf_hook_ops wifidog_ops[] __read_mostly = {
 static int __init wifidog_init(void)
 {
 	int ret;
-
-	update_gw_interface(gw_interface);
 	
 	proc = proc_mkdir("wifidog", NULL);
 	if (!proc) {
