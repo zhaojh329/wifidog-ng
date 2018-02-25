@@ -37,7 +37,7 @@ static void authserver_request_cb(void *data, char *content)
         return;
     }
     
-    ULOG_INFO("auth cb:%s\n", content);
+    ULOG_INFO("auth for %s: %s\n", mac, content);
 
     if (!content)
         goto deny;
