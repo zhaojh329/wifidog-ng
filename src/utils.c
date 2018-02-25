@@ -138,7 +138,7 @@ int enable_kmod(bool enable, const char *interface, int port, int ssl_port)
     return 0;
 }
 
-int allow_termianl(const char *mac)
+int allow_termianl(const char *mac, const char *token)
 {
     FILE *fp = fopen("/proc/wifidog/term", "w");
     if (!fp) {
@@ -146,7 +146,7 @@ int allow_termianl(const char *mac)
         return -1;
     }
 
-    fprintf(fp, "+%s\n", mac);
+    fprintf(fp, "+%s %s\n", mac, token);
     fclose(fp);
 
     ULOG_INFO("allow termianl: %s\n", mac);

@@ -21,11 +21,18 @@
 #include "utils.h"
 #include "ping.h"
 #include "config.h"
-#include "httpget.h"
+#include "http.h"
+#include "counters.h"
+
+struct authserver_request_param {
+    struct uh_client *cl;
+    char token[33];
+};
 
 static void authserver_request_cb(void *data, char *content)
 {
-    struct uh_client *cl = data;
+    struct authserver_request_param *param = data;
+    struct uh_client *cl = param->cl;
     struct config *conf = get_config();
     const char *remote_addr = cl->get_peer_addr(cl);
     char mac[18] = "";
@@ -45,22 +52,28 @@ static void authserver_request_cb(void *data, char *content)
     sscanf(content, "Auth: %d", &code);
 
     if (code == 1) {
-        allow_termianl(mac);
+        allow_termianl(mac, param->token);
         
         cl->redirect(cl, 302, "http://%s:%d%s%sgw_id=%s", conf->authserver.host, conf->authserver.port, conf->authserver.path,
             conf->authserver.portal_path, conf->gw_id);
+        free(param);
         return;
     }
 
 deny:
     deny_termianl(mac);
+    free(param);
 }
 
 static void authserver_request(struct uh_client *cl, const char *type, const char *ip, const char *mac, const char *token)
 {
     struct config *conf = get_config();
-    
-    httpget(authserver_request_cb, cl, "http://%s:%d%s%sstage=%s&ip=%s&mac=%s&token=%s",
+    struct authserver_request_param *param = calloc(1, sizeof(struct authserver_request_param));
+
+    param->cl = cl;
+    strcpy(param->token, token);
+
+    httpget(authserver_request_cb, param, "http://%s:%d%s%sstage=%s&ip=%s&mac=%s&token=%s",
                         conf->authserver.host, conf->authserver.port, conf->authserver.path,
                         conf->authserver.auth_path, type, ip, mac, token);
 }
@@ -143,7 +156,6 @@ err:
      return -1;
 }
 
-
 int auth_init()
 {
     struct config *conf = get_config();
@@ -158,7 +170,9 @@ int auth_init()
 
     allow_destip(conf->authserver.host);
     start_heartbeat();
+    start_counters();
     enable_kmod(true, conf->gw_interface, conf->gw_port, conf->gw_ssl_port);
 
     return 0;
 }
+

@@ -27,6 +27,8 @@ import (
     "net/http"
     "crypto/md5"
     "encoding/hex"
+    "strings"
+    "io/ioutil"
 )
 
 var loginPage = `
@@ -72,12 +74,19 @@ func generateToken(mac string) string {
     return hex.EncodeToString(cipherStr)
 }
 
+type client struct {
+    token string
+    ip string
+}
+
 func main() {
     port := flag.Int("port", 8912, "http service port")
 
     flag.Parse()
 
     rand.Seed(time.Now().Unix())
+
+    clients := make(map[string]client)
 
     http.HandleFunc("/wifidog/ping", func(w http.ResponseWriter, r *http.Request) {
         log.Println("ping", r.URL.RawQuery)
@@ -90,9 +99,14 @@ func main() {
         } else {
             gw_address := r.URL.Query().Get("gw_address")
             gw_port := r.URL.Query().Get("gw_port")
+            ip := r.URL.Query().Get("ip")
             mac := r.URL.Query().Get("mac")
             token := generateToken(mac)
+
+            clients[mac] = client{token, ip}
         
+            log.Println("New client:", mac, token)
+
             uri := fmt.Sprintf("http://%s:%s/wifidog/auth?token=%s", gw_address, gw_port, token)
             fmt.Println("Redirect:", uri)
             http.Redirect(w, r, uri, http.StatusFound)
@@ -100,8 +114,34 @@ func main() {
     })
 
     http.HandleFunc("/wifidog/auth", func(w http.ResponseWriter, r *http.Request) {
-        log.Println("auth", r.URL.RawQuery)
-        fmt.Fprintf(w, "Auth: 1")
+        stage := r.URL.Query().Get("stage")
+        mac := strings.ToUpper(r.URL.Query().Get("mac"))
+        token := r.URL.Query().Get("token")
+
+        auth := 0
+
+        if stage == "counters" {
+            body, _ := ioutil.ReadAll(r.Body)
+            r.Body.Close()
+            log.Println("counters:", string(body))
+            return;
+        }
+
+        if client, ok := clients[mac]; ok {
+            if client.token == token {
+                if stage == "login" {
+                    auth = 1
+                } else if stage == "logout" {
+                    delete(clients, mac)
+                }
+            } else {
+                log.Printf("Invalid token(%s) for %s\n", token, mac)
+            }
+        } else {
+            log.Println("Not found ", mac)
+        }
+
+        fmt.Fprintf(w, "Auth: %d", auth)
     })
 
     http.HandleFunc("/wifidog/portal", func(w http.ResponseWriter, r *http.Request) {

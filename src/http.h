@@ -15,14 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _HTTPGET_H
-#define _HTTPGET_H
+#ifndef _HTTP_H
+#define _HTTP_H
 
+#include <stdlib.h>
 #include <uhttpd/uhttpd.h>
 #include <libubox/uclient.h>
 
-typedef void (*httpget_cb)(void *data, char *content);
+typedef void (*http_cb)(void *data, char *content);
 
-int httpget(httpget_cb cb, void *data, const char *url, ...);
+int httppost(http_cb cb, void *data, const char *post_data, const char *url, ...);
+
+#define httpget(cb, data, url...) httppost(cb, data, NULL, url)
 
 #endif
+

@@ -31,7 +31,7 @@ static inline int term_mac_hash(const u8 *mac)
 	return jhash_1word(key, hash_rnd) & (TERM_HASH_SIZE - 1);
 }
 
-static int term_mark(const u8 *mac, int authed)
+static int term_mark(const u8 *mac, int authed, const char *token)
 {
 	struct terminal *term;
 	u32 hash = term_mac_hash(mac);
@@ -40,8 +40,10 @@ static int term_mark(const u8 *mac, int authed)
 	hlist_for_each_entry(term, &term_mac_hash_table[hash], node) {
 		if (ether_addr_equal(term->mac, mac)) {
 			term->flags &= ~TERM_AUTHED;
-			if (authed)
+			if (authed) {
 				term->flags |= TERM_AUTHED;
+				strcpy(term->token, token);
+			}
 			write_unlock_bh(&term_lock);
 			return 0;
 		}
@@ -50,14 +52,14 @@ static int term_mark(const u8 *mac, int authed)
 	return -1;
 }
 
-static inline int term_mark_authed(const u8 *mac)
+static inline int term_mark_authed(const u8 *mac, const char *token)
 {
-	return term_mark(mac, TERM_AUTHED);
+	return term_mark(mac, TERM_AUTHED, token);
 }
 
 static inline int term_mark_denied(const u8 *mac)
 {
-	return term_mark(mac, 0);
+	return term_mark(mac, 0, NULL);
 }
 
 int term_is_authd(const u8 *mac)
@@ -131,14 +133,14 @@ static int term_seq_show(struct seq_file *s, void *v)
 	u8 authed = 0;
 	
 	if (v == SEQ_START_TOKEN) {
-		seq_printf(s, "%-17s  %-16s  %-16s  %-16s  %-14s  %-7s\n", "MAC", "IP", "Rx", "Tx", "Time", "Authed");
+		seq_printf(s, "%-17s  %-16s  %-16s  %-16s  %-14s  %-7s  %-32s\n", "MAC", "IP", "Rx", "Tx", "Time", "Authed", "Token");
 	} else {
 		hlist_for_each_entry(term, head, node) {
 			jiffies_to_timeval(jiffies - term->j, &tv);
 			if (term->flags & TERM_AUTHED)
 				authed = 1;
-			seq_printf(s, "%pM  %-16pI4  %-16llu  %-16llu  %-14ld  %-7d\n", 
-				term->mac, &(term->ip), term->flow.rx, term->flow.tx, tv.tv_sec, authed);
+			seq_printf(s, "%pM  %-16pI4  %-16llu  %-16llu  %-14ld  %-7d  %-32s\n",
+				term->mac, &(term->ip), term->flow.rx, term->flow.tx, tv.tv_sec, authed, term->token);
 		}
 	}
 
@@ -175,20 +177,25 @@ static ssize_t proc_term_write(struct file *file, const char __user *buf, size_t
 	if (!strncmp(data, "clear", 5))
 		term_clear();
 	else {
+		int ret;
 		u8 mac[ETH_ALEN];
+		u8 token[33];
 		char op;
 		
-		if (sscanf(data + 1 , "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) != ETH_ALEN) {
+		ret = sscanf(data + 1 , "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX %s",
+			&mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5], token);
+		if (ret != ETH_ALEN && ret != ETH_ALEN + 1) {
 			pr_err("invalid macaddr format: %s\n", data);
 			goto QUIT;
 		}
 		
 		op = data[0];
 		
-		if (op == '+')
-			term_mark_authed(mac);
-		else if (op == '-')
+		if (op == '+') {
+			term_mark_authed(mac, token);
+		} else if (op == '-') {
 			term_mark_denied(mac);
+		}
 		else
 			pr_err("invalid format: %s\n", data);
 	}

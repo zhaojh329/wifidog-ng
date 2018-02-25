@@ -19,7 +19,7 @@
 #include <uhttpd/uhttpd.h>
 #include <libubox/ulog.h>
 
-#include "httpget.h"
+#include "http.h"
 #include "config.h"
 
 static time_t start_time;

@@ -16,12 +16,12 @@
  */
 
 #include <libubox/ulog.h>
-#include "httpget.h"
+#include "http.h"
 
 #define MAX_CONTENT_SIZE    1024
 
 struct uclient_param {
-    httpget_cb cb;
+    http_cb cb;
     void *data;
     int content_len;
     char *content;
@@ -49,10 +49,10 @@ static void header_done_cb(struct uclient *cl)
 static void read_data_cb(struct uclient *cl)
 {
     static char buf[1024];
-	struct uclient_param *param = cl->priv;
-	int len;
+    struct uclient_param *param = cl->priv;
+    int len;
 
-	while (1) {
+    while (1) {
         if (param->content_len < MAX_CONTENT_SIZE && param->content) {
             len = uclient_read(cl, param->content + param->content_len, MAX_CONTENT_SIZE - param->content_len);
             if (len > 0)
@@ -61,51 +61,51 @@ static void read_data_cb(struct uclient *cl)
             len = uclient_read(cl, buf, sizeof(buf));
         }
 
-		if (len <= 0)
-			break;
-	}
+        if (len <= 0)
+            break;
+    }
 }
 
 static void eof_cb(struct uclient *cl)
 {
-	if (!cl->data_eof) {
-		ULOG_ERR("Connection reset prematurely\n");
-	} else {
+    if (!cl->data_eof) {
+        ULOG_ERR("Connection reset prematurely\n");
+    } else {
         struct uclient_param *param = cl->priv;
 
         if (param->cb)
             param->cb(param->data, param->content);
     }
-	_uclient_free(cl);
+    _uclient_free(cl);
 }
 
 static void handle_uclient_error(struct uclient *cl, int code)
 {
     const char *type = "Unknown error";
 
-	switch(code) {
-	case UCLIENT_ERROR_CONNECT:
-		type = "Connection failed";
-		break;
-	case UCLIENT_ERROR_TIMEDOUT:
-		type = "Connection timed out";
-		break;
-	default:
-		break;
-	}
+    switch(code) {
+    case UCLIENT_ERROR_CONNECT:
+        type = "Connection failed";
+        break;
+    case UCLIENT_ERROR_TIMEDOUT:
+        type = "Connection timed out";
+        break;
+    default:
+        break;
+    }
 
-	ULOG_ERR("httpget \"%s\" error: %s\n", cl->url->location, type);
-	_uclient_free(cl);
+    ULOG_ERR("httpget \"%s\" error: %s\n", cl->url->location, type);
+    _uclient_free(cl);
 }
 
 static const struct uclient_cb _cb = {
-	.header_done = header_done_cb,
-	.data_read = read_data_cb,
-	.data_eof = eof_cb,
-	.error = handle_uclient_error
+    .header_done = header_done_cb,
+    .data_read = read_data_cb,
+    .data_eof = eof_cb,
+    .error = handle_uclient_error
 };
 
-int httpget(httpget_cb cb, void *data, const char *url, ...)
+int httppost(http_cb cb, void *data, const char *post_data, const char *url, ...)
 {
     static char buf[1024];
     struct uclient *cl;
@@ -117,10 +117,10 @@ int httpget(httpget_cb cb, void *data, const char *url, ...)
     va_end(ap);
     
     cl = uclient_new(buf, NULL, &_cb);
-	if (!cl) {
-		ULOG_ERR("Failed to allocate uclient context\n");
-		return -1;
-	}
+    if (!cl) {
+        ULOG_ERR("Failed to allocate uclient context\n");
+        return -1;
+    }
 
     param = calloc(1, sizeof(struct uclient_param));
     param->cb = cb;
@@ -132,6 +132,12 @@ int httpget(httpget_cb cb, void *data, const char *url, ...)
     if (uclient_connect(cl)) {
         ULOG_ERR("Failed to establish connection\n");
         goto err;
+    }
+
+    if (post_data) {
+        uclient_http_set_request_type(cl, "POST");
+        uclient_http_set_header(cl, "Content-Type", "application/x-www-form-urlencoded");
+        uclient_write(cl, post_data, strlen(post_data));
     }
 
     if (uclient_request(cl)) {
@@ -150,3 +156,4 @@ err:
         
     return -1;
 }
+
