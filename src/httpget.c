@@ -94,7 +94,7 @@ static void handle_uclient_error(struct uclient *cl, int code)
 		break;
 	}
 
-	ULOG_ERR("Connection error: %s\n", type);
+	ULOG_ERR("httpget \"%s\" error: %s\n", cl->url->location, type);
 	_uclient_free(cl);
 }
 
