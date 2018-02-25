@@ -60,7 +60,7 @@ static void authserver_request(struct uh_client *cl, const char *type, const cha
 {
     struct config *conf = get_config();
     
-    httpget(authserver_request_cb, cl, "http://%s:%d%s%sstage=%s&ip%s&mac=%s&token=%s",
+    httpget(authserver_request_cb, cl, "http://%s:%d%s%sstage=%s&ip=%s&mac=%s&token=%s",
                         conf->authserver.host, conf->authserver.port, conf->authserver.path,
                         conf->authserver.auth_path, type, ip, mac, token);
 }
