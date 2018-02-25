@@ -28,7 +28,7 @@ static void authserver_request_cb(void *data, char *content)
     struct uh_client *cl = data;
     struct config *conf = get_config();
     const char *remote_addr = cl->get_peer_addr(cl);
-    char mac[13] = "";
+    char mac[18] = "";
     int code = -1;
     
     if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
