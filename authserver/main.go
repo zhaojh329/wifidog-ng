@@ -81,6 +81,7 @@ type client struct {
 
 func main() {
     port := flag.Int("port", 8912, "http service port")
+    weixin := flag.Bool("wx", false, "weixin")
 
     flag.Parse()
 
@@ -95,7 +96,11 @@ func main() {
 
     http.HandleFunc("/wifidog/login", func(w http.ResponseWriter, r *http.Request) {
         if r.Method == "GET" {
-            fmt.Fprintf(w, loginPage)
+            if *weixin {
+                http.ServeFile(w, r, "www/weixin/login.html")
+            } else {
+                fmt.Fprintf(w, loginPage)
+            }
         } else {
             gw_address := r.URL.Query().Get("gw_address")
             gw_port := r.URL.Query().Get("gw_port")
@@ -124,6 +129,7 @@ func main() {
             body, _ := ioutil.ReadAll(r.Body)
             r.Body.Close()
             log.Println("counters:", string(body))
+            fmt.Fprintf(w, "ok")
             return;
         }
 
@@ -144,10 +150,18 @@ func main() {
         fmt.Fprintf(w, "Auth: %d", auth)
     })
 
+    http.HandleFunc("/wifidog/weixin", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Fprintf(w, "ok")
+    })
+
     http.HandleFunc("/wifidog/portal", func(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintf(w, portalPage)
     })
 
+    http.Handle("/", http.FileServer(http.Dir("./www")))
+
     log.Println("Listen on: ", *port, "SSL off")
+    log.Println("weixin: ", *weixin)
+
     log.Fatal(http.ListenAndServe(":" + strconv.Itoa(*port), nil))
 }

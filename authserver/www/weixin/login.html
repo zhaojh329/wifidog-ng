@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<html>
+<head lang="zh-CN">
+<meta charset="UTF-8">
+    <title>微信连Wi-Fi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="format-detection" content="telephone=no">
+	<link rel="stylesheet" href="/weixin/css/style-simple-follow.css"/>
+	<script type="text/javascript" src="https://wifi.weixin.qq.com/resources/js/wechatticket/wechatutil.js" ></script>
+	<script src="/weixin/js/md5.min.js"></script>
+	<script type="text/javascript">
+		function callWechatBrowser() {
+			var appId = 'wx18fd578c0f8f3810';
+			var extend = 'demoNew';
+			var timestamp = new Date().getTime();
+			var shopId = '3587240';
+			var authUrl = 'http://192.168.0.100:8912/wifidog/weixin';
+			var mac = '0c:1d:af:c4:db:fc';
+			var ssid = 'OpenWrt';
+			var secretkey = 'a3635e4b2999897a6643388569d03b82';
+			var sign = md5(appId + extend + timestamp + shopId + authUrl + mac + ssid + secretkey);
+
+			Wechat_GotoRedirect(appId, extend, timestamp, sign, shopId, authUrl, mac, ssid);
+		}
+	</script>
+</head>
+<body class="mod-simple-follow">
+<div class="mod-simple-follow-page">
+    <div class="mod-simple-follow-page__banner">
+        <img class="mod-simple-follow-page__banner-bg" src="/weixin/images/background.jpg" alt=""/>
+        <div class="mod-simple-follow-page__img-shadow"></div>
+        <div class="mod-simple-follow-page__logo">
+            <img class="mod-simple-follow-page__logo-img" src="/weixin/images/t.weixin.logo.png" alt=""/>
+            <p class="mod-simple-follow-page__logo-name"></p>
+            <p class="mod-simple-follow-page__logo-welcome">欢迎您</p>
+        </div>
+    </div>
+    <div class="mod-simple-follow-page__attention">
+        <p class="mod-simple-follow-page__attention-txt">欢迎使用微信连Wi-Fi</p>
+        <a class="mod-simple-follow-page__attention-btn" onclick="callWechatBrowser()">一键打开微信连Wi-Fi</a>
+    </div>
+</div>
+</body>
+
+</html>
