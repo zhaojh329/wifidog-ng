@@ -16,6 +16,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <net/if.h>
 #include <unistd.h>
@@ -25,7 +26,17 @@
 #include <arpa/inet.h>
 #include <uhttpd/uhttpd.h>
 #include <libubox/ulog.h>
-#include "utils.h"       
+#include <libubox/avl-cmp.h>
+#include <libubox/avl.h>
+#include "utils.h"
+
+static struct avl_tree temppass_tree;
+
+struct termianl_temppass {
+    char mac[18];
+    struct avl_node node;
+    struct uloop_timeout timer;
+};
 
 int get_iface_ip(const char *ifname, char *dst, int len)
 {
@@ -138,18 +149,51 @@ int enable_kmod(bool enable, const char *interface, int port, int ssl_port)
     return 0;
 }
 
-int allow_termianl(const char *mac, const char *token)
+static void temppass_timer_cb(struct uloop_timeout *t)
 {
+    struct termianl_temppass *termianl = container_of(t, struct termianl_temppass, timer);
+
+    deny_termianl(termianl->mac);
+    avl_delete(&temppass_tree, &termianl->node);
+    free(termianl);
+}
+
+int allow_termianl(const char *mac, const char *token, bool temporary)
+{
+    struct termianl_temppass *termianl;
+
     FILE *fp = fopen("/proc/wifidog/term", "w");
     if (!fp) {
         ULOG_ERR("fopen:%s\n", strerror(errno));
         return -1;
     }
 
-    fprintf(fp, "+%s %s\n", mac, token);
+    fprintf(fp, "+%s %s\n", mac, token ? token : "");
     fclose(fp);
 
-    ULOG_INFO("allow termianl: %s\n", mac);
+    ULOG_INFO("allow termianl %s: %s\n", temporary ? "temporary" : "", mac);
+
+    termianl = avl_find_element(&temppass_tree, mac, termianl, node);
+    if (termianl) {
+        if (temporary) {
+            uloop_timeout_set(&termianl->timer, 5000);
+            return 0;
+        }
+        uloop_timeout_cancel(&termianl->timer);
+        avl_delete(&temppass_tree, &termianl->node);
+        free(termianl);
+    } else if (temporary) {
+        termianl = calloc(1, sizeof(struct termianl_temppass));
+        if (!termianl) {
+            ULOG_ERR("allow_termianl temporary FAILED: No mem\n");
+            return -1;
+        }
+
+        termianl->node.key = strcpy(termianl->mac, mac);
+        termianl->timer.cb = temppass_timer_cb;
+        uloop_timeout_set(&termianl->timer, 5000);
+        avl_insert(&temppass_tree, &termianl->node);
+    }
     return 0;
 }
 
@@ -164,7 +208,7 @@ int deny_termianl(const char *mac)
     fprintf(fp, "-%s\n", mac);
     fclose(fp);
 
-    ULOG_INFO("allow termianl: %s\n", mac);
+    ULOG_INFO("deny termianl: %s\n", mac);
     return 0;
 }
 
@@ -184,3 +228,7 @@ int allow_destip(const char *ip)
     return 0;
 }
 
+void termianl_temppass_init()
+{
+    avl_init(&temppass_tree, avl_strcmp, false, NULL);
+}

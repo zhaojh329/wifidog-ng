@@ -113,7 +113,6 @@ func main() {
             log.Println("New client:", mac, token)
 
             uri := fmt.Sprintf("http://%s:%s/wifidog/auth?token=%s", gw_address, gw_port, token)
-            fmt.Println("Redirect:", uri)
             http.Redirect(w, r, uri, http.StatusFound)
         }
     })
@@ -151,7 +150,18 @@ func main() {
     })
 
     http.HandleFunc("/wifidog/weixin", func(w http.ResponseWriter, r *http.Request) {
-        fmt.Fprintf(w, "ok")
+        gw_address := r.URL.Query().Get("gw_address")
+        gw_port := r.URL.Query().Get("gw_port")
+        mac := r.URL.Query().Get("mac")
+        ip := r.URL.Query().Get("ip")
+        token := generateToken(mac)
+
+        clients[mac] = client{token, ip}
+
+        log.Println("New Weixin client:", mac, token)
+
+        uri := fmt.Sprintf("http://%s:%s/wifidog/auth?token=%s", gw_address, gw_port, token)
+        http.Redirect(w, r, uri, http.StatusFound)
     })
 
     http.HandleFunc("/wifidog/portal", func(w http.ResponseWriter, r *http.Request) {

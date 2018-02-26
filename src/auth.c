@@ -52,7 +52,7 @@ static void authserver_request_cb(void *data, char *content)
     sscanf(content, "Auth: %d", &code);
 
     if (code == 1) {
-        allow_termianl(mac, param->token);
+        allow_termianl(mac, param->token, false);
         
         cl->redirect(cl, 302, "http://%s:%d%s%sgw_id=%s", conf->authserver.host, conf->authserver.port, conf->authserver.path,
             conf->authserver.portal_path, conf->gw_id);
@@ -104,7 +104,7 @@ static void http_callback_auth(struct uh_client *cl)
 {
     const char *token = cl->get_var(cl, "token");
     struct config *conf = get_config();
-    
+
     if (token) {
         const char *remote_addr = cl->get_peer_addr(cl);
         const char *logout = cl->get_var(cl, "logout");
@@ -131,6 +131,31 @@ static void http_callback_auth(struct uh_client *cl)
     }
 }
 
+static void http_callback_temppass(struct uh_client *cl)
+{
+    char mac[18] = "";
+    struct config *conf = get_config();
+    const char *remote_addr = cl->get_peer_addr(cl);
+
+    if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
+        cl->send_header(cl, 200, "OK", -1);
+        cl->header_end(cl);
+        cl->chunk_printf(cl, "<h1>Failed to retrieve your MAC address</h1>");
+        cl->request_done(cl);
+        ULOG_ERR("Failed to retrieve MAC address for ip %s\n", remote_addr);
+        return;
+    }
+
+    allow_termianl(mac, NULL, true);
+
+    cl->send_header(cl, 200, "OK", -1);
+    cl->append_header(cl, "Access-Control-Allow-Origin", "*");
+    cl->append_header(cl, "Access-Control-Allow-Method", "GET");
+    cl->header_end(cl);
+    cl->chunk_printf(cl, "<h1>OK</h1>");
+    cl->request_done(cl);
+}
+
 static int http_init(int port, bool ssl)
 {
     struct uh_server *srv = NULL;
@@ -149,6 +174,7 @@ static int http_init(int port, bool ssl)
     srv->error404_cb = http_callback_404;
 
     uh_add_action(srv, "/wifidog/auth", http_callback_auth);
+    uh_add_action(srv, "/wifidog/temppass", http_callback_temppass);
 
     return 0;
 err:
@@ -167,7 +193,7 @@ int auth_init()
     if (http_init(conf->gw_ssl_port, true))
         return -1;
 #endif
-
+    termianl_temppass_init();
     allow_destip(conf->authserver.host);
     start_heartbeat();
     start_counters();

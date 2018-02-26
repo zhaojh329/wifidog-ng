@@ -12,18 +12,46 @@
 	<script type="text/javascript" src="https://wifi.weixin.qq.com/resources/js/wechatticket/wechatutil.js" ></script>
 	<script src="/weixin/js/md5.min.js"></script>
 	<script type="text/javascript">
-		function callWechatBrowser() {
-			var appId = 'wx18fd578c0f8f3810';
-			var extend = 'demoNew';
-			var timestamp = new Date().getTime();
-			var shopId = '3587240';
-			var authUrl = 'http://192.168.0.100:8912/wifidog/weixin';
-			var mac = '0c:1d:af:c4:db:fc';
-			var ssid = 'OpenWrt';
-			var secretkey = 'a3635e4b2999897a6643388569d03b82';
-			var sign = md5(appId + extend + timestamp + shopId + authUrl + mac + ssid + secretkey);
+        function getQueryString(name) {
+            var reg = new RegExp("(^|&)"+ name + "=([^&]*)(&|$)");
+            var r = window.location.search.substr(1).match(reg);
+            if(r != null)
+                return unescape(r[2]);
+            return null;
+        }
 
-			Wechat_GotoRedirect(appId, extend, timestamp, sign, shopId, authUrl, mac, ssid);
+		function callWechatBrowser() {
+            var xmlhttp;
+
+            if (window.XMLHttpRequest) {
+                //  IE7+, Firefox, Chrome, Opera, Safari 浏览器执行代码
+                xmlhttp=new XMLHttpRequest();
+            } else {
+                // IE6, IE5 浏览器执行代码
+                xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+            }
+            
+            xmlhttp.onreadystatechange = function() {
+                if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+                    var appId = 'wx18fd578c0f8f3810';
+                    var extend = 'demoNew';
+                    var timestamp = new Date().getTime();
+                    var shopId = '3587240';
+                    var authUrl = 'http://192.168.0.100:8912/wifidog/weixin';
+                    var mac = '0c:1d:af:c4:db:fc';
+                    var ssid = 'OpenWrt';
+                    var secretkey = 'a3635e4b2999897a6643388569d03b82';
+                    var sign = md5(appId + extend + timestamp + shopId + authUrl + mac + ssid + secretkey);
+
+                    Wechat_GotoRedirect(appId, extend, timestamp, sign, shopId, authUrl, mac, ssid);
+                }
+            }
+
+            var gw_address = getQueryString('gw_address');
+            var gw_port = getQueryString('gw_port');
+            
+            xmlhttp.open("GET","http://" + gw_address + ":" + gw_port + "/wifidog/temppass", true);
+            xmlhttp.send();
 		}
 	</script>
 </head>
