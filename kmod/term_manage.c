@@ -179,7 +179,7 @@ static ssize_t proc_term_write(struct file *file, const char __user *buf, size_t
 	else {
 		int ret;
 		u8 mac[ETH_ALEN];
-		u8 token[33];
+		u8 token[33] = "";
 		char op;
 		
 		ret = sscanf(data + 1 , "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX %s",
