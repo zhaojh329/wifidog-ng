@@ -30,6 +30,7 @@
 #include <libubox/avl.h>
 #include "utils.h"
 
+#define TEMPPASS_TIME  5000
 static struct avl_tree temppass_tree;
 
 struct termianl_temppass {
@@ -176,7 +177,7 @@ int allow_termianl(const char *mac, const char *token, bool temporary)
     termianl = avl_find_element(&temppass_tree, mac, termianl, node);
     if (termianl) {
         if (temporary) {
-            uloop_timeout_set(&termianl->timer, 5000);
+            uloop_timeout_set(&termianl->timer, TEMPPASS_TIME);
             return 0;
         }
         uloop_timeout_cancel(&termianl->timer);
@@ -191,7 +192,7 @@ int allow_termianl(const char *mac, const char *token, bool temporary)
 
         termianl->node.key = strcpy(termianl->mac, mac);
         termianl->timer.cb = temppass_timer_cb;
-        uloop_timeout_set(&termianl->timer, 5000);
+        uloop_timeout_set(&termianl->timer, TEMPPASS_TIME);
         avl_insert(&temppass_tree, &termianl->node);
     }
     return 0;
