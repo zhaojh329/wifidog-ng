@@ -170,7 +170,7 @@ func main() {
 
     http.Handle("/", http.FileServer(http.Dir("./www")))
 
-    log.Println("Listen on: ", *port, "SSL off")
+    log.Println("Listen on: ", *port)
     log.Println("weixin: ", *weixin)
 
     log.Fatal(http.ListenAndServe(":" + strconv.Itoa(*port), nil))
