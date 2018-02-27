@@ -24,10 +24,10 @@
             var xmlhttp;
 
             if (window.XMLHttpRequest) {
-                //  IE7+, Firefox, Chrome, Opera, Safari 浏览器执行代码
+                //  IE7+, Firefox, Chrome, Opera, Safari
                 xmlhttp=new XMLHttpRequest();
             } else {
-                // IE6, IE5 浏览器执行代码
+                // IE6, IE5
                 xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
             }
             
@@ -37,7 +37,7 @@
                     var extend = 'demoNew';
                     var timestamp = new Date().getTime();
                     var shopId = '3587240';
-                    var authUrl = 'http://192.168.0.100:8912/wifidog/weixin';
+                    var authUrl = window.location.origin + '/wifidog/weixin' + window.location.search;
                     var mac = '0c:1d:af:c4:db:fc';
                     var ssid = 'OpenWrt';
                     var secretkey = 'a3635e4b2999897a6643388569d03b82';
