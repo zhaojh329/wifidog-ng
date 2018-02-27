@@ -29,6 +29,8 @@ import (
     "encoding/hex"
     "strings"
     "io/ioutil"
+    "encoding/json"
+    "github.com/joshbetz/config"
 )
 
 var loginPage = `
@@ -79,6 +81,12 @@ type client struct {
     ip string
 }
 
+type weixinConfig struct {
+    Appid string `json:"appid"`
+    Shopid string `json:"shopid"`
+    Secretkey string `json:"secretkey"`
+}
+
 func main() {
     port := flag.Int("port", 8912, "http service port")
     weixin := flag.Bool("wx", false, "weixin")
@@ -88,6 +96,13 @@ func main() {
     rand.Seed(time.Now().Unix())
 
     clients := make(map[string]client)
+
+    c := config.New("weixin.json")
+    weixincfg := &weixinConfig{}
+
+    c.Get("appid", &weixincfg.Appid)
+    c.Get("shopid", &weixincfg.Shopid)
+    c.Get("secretkey", &weixincfg.Secretkey)
 
     http.HandleFunc("/wifidog/ping", func(w http.ResponseWriter, r *http.Request) {
         log.Println("ping", r.URL.RawQuery)
@@ -166,6 +181,11 @@ func main() {
 
     http.HandleFunc("/wifidog/portal", func(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintf(w, portalPage)
+    })
+
+    http.HandleFunc("/wifidog/weixincfg", func(w http.ResponseWriter, r *http.Request) {
+        js, _ := json.Marshal(weixincfg)
+        fmt.Fprintf(w, string(js))
     })
 
     http.Handle("/", http.FileServer(http.Dir("./www")))
