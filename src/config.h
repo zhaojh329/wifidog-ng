@@ -22,6 +22,7 @@ struct config {
     const char *gw_interface;
     const char *gw_address;
     const char *gw_id;
+    const char *ssid;
     int gw_port;
     int gw_ssl_port;
     int checkinterval;

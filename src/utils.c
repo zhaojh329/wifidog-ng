@@ -21,6 +21,7 @@
 #include <net/if.h>
 #include <unistd.h>
 #include <errno.h>
+#include <ctype.h>
 #include <net/if_arp.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
@@ -232,4 +233,29 @@ int allow_destip(const char *ip)
 void termianl_temppass_init()
 {
     avl_init(&temppass_tree, avl_strcmp, false, NULL);
+}
+
+/* blen is the size of buf; slen is the length of src.  The input-string need
+** not be, and the output string will not be, null-terminated.  Returns the
+** length of the encoded string, or -1 on error (buffer overflow) */
+int urlencode(char *buf, int blen, const char *src, int slen)
+{
+    static const char hex[] = "0123456789abcdef";
+    int i, len = 0;
+
+    for (i = 0; (i < slen) && (len < blen); i++) {
+        if(isalnum(src[i]) || (src[i] == '-') || (src[i] == '_') ||
+            (src[i] == '.') || (src[i] == '~')) {
+            buf[len++] = src[i];
+        } else if ((len+3) <= blen) {
+            buf[len++] = '%';
+            buf[len++] = hex[(src[i] >> 4) & 15];
+            buf[len++] = hex[ src[i]       & 15];
+        } else {
+            len = -1;
+            break;
+        }
+    }
+
+    return (i == slen) ? len : -1;
 }

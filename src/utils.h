@@ -30,4 +30,6 @@ void termianl_temppass_init();
 int deny_termianl(const char *mac);
 int allow_destip(const char *ip);
 
+int urlencode(char *buf, int blen, const char *src, int slen);
+
 #endif

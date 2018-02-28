@@ -43,6 +43,7 @@ enum {
 	GATEWAY_ATTR_IFNAME,
     GATEWAY_ATTR_ADDRESS,
     GATEWAY_ATTR_ID,
+    GATEWAY_ATTR_SSID,
 	GATEWAY_ATTR_PORT,
 	GATEWAY_ATTR_SSL_PORT,
 	GATEWAY_ATTR_CHECKINTERVAL,
@@ -53,6 +54,7 @@ static const struct blobmsg_policy gateway_attrs[GATEWAY_ATTR_MAX] = {
 	[GATEWAY_ATTR_IFNAME] = { .name = "ifname", .type = BLOBMSG_TYPE_STRING },
     [GATEWAY_ATTR_ADDRESS] = { .name = "address", .type = BLOBMSG_TYPE_STRING },
     [GATEWAY_ATTR_ID] = { .name = "id", .type = BLOBMSG_TYPE_STRING },
+    [GATEWAY_ATTR_SSID] = { .name = "ssid", .type = BLOBMSG_TYPE_STRING },
 	[GATEWAY_ATTR_PORT] = { .name = "port", .type = BLOBMSG_TYPE_INT32 },
 	[GATEWAY_ATTR_SSL_PORT] = { .name = "ssl_port", .type = BLOBMSG_TYPE_INT32 },
 	[GATEWAY_ATTR_CHECKINTERVAL] = { .name = "checkinterval", .type = BLOBMSG_TYPE_INT32 }
@@ -81,6 +83,12 @@ static void parse_gateway(struct uci_section *s)
     if (tb[GATEWAY_ATTR_ID])
         conf.gw_id = strdup(blobmsg_get_string(tb[GATEWAY_ATTR_ID]));
 
+    if (tb[GATEWAY_ATTR_SSID]) {
+        const char *ssid = blobmsg_get_string(tb[GATEWAY_ATTR_SSID]);
+        conf.ssid = calloc(1, strlen(ssid) * 4);
+        urlencode((char *)conf.ssid, strlen(ssid) * 4, ssid, strlen(ssid));
+    }
+
     if (tb[GATEWAY_ATTR_PORT])
         conf.gw_port = blobmsg_get_u32(tb[GATEWAY_ATTR_PORT]);
 
@@ -90,7 +98,6 @@ static void parse_gateway(struct uci_section *s)
     if (tb[GATEWAY_ATTR_CHECKINTERVAL])
         conf.checkinterval = blobmsg_get_u32(tb[GATEWAY_ATTR_CHECKINTERVAL]);
 }
-
 
 enum {
     AUTHSERVER_ATTR_HOST,

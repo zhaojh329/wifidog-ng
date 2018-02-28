@@ -52,9 +52,9 @@
                     var extend = 'demoNew';
                     var timestamp = new Date().getTime();
                     var authUrl = window.location.origin + '/wifidog/weixin' + window.location.search;
-                    var mac = getQueryString('mac').toLowerCase();;
-                    var ssid = 'OpenWrt';
-                    
+                    var mac = getQueryString('mac').toLowerCase();
+                    var ssid = getQueryString('ssid');
+
                     var sign = md5(appId + extend + timestamp + shopId + authUrl + mac + ssid + secretkey);
                     Wechat_GotoRedirect(appId, extend, timestamp, sign, shopId, authUrl, mac, ssid);
                 });
