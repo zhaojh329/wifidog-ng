@@ -83,6 +83,7 @@ static void http_callback_404(struct uh_client *cl)
     struct config *conf = get_config();
     const char *remote_addr = cl->get_peer_addr(cl);
     char mac[18] = "";
+    static char tmpurl[2048] = "", url[8192] = "";
     
     if (cl->request.method != UH_HTTP_MSG_GET) {
         cl->request_done(cl);
@@ -95,9 +96,12 @@ static void http_callback_404(struct uh_client *cl)
         return;
     }
     
-    cl->redirect(cl, 302, "http://%s:%d%s%sgw_address=%s&gw_port=%d&ip=%s&mac=%s&ssid=%s",
+    snprintf(tmpurl, (sizeof(tmpurl) - 1), "http://%s%s", cl->get_header(cl, "host"), cl->get_url(cl));
+    urlencode(url, sizeof(url), tmpurl, strlen(tmpurl));
+
+    cl->redirect(cl, 302, "http://%s:%d%s%sgw_address=%s&gw_port=%d&ip=%s&mac=%s&ssid=%s&url=%s",
         conf->authserver.host, conf->authserver.port, conf->authserver.path, conf->authserver.login_path,
-        conf->gw_address, conf->gw_port, remote_addr, mac, conf->ssid ? conf->ssid : "");
+        conf->gw_address, conf->gw_port, remote_addr, mac, conf->ssid ? conf->ssid : "", url);
 }
 
 static void http_callback_auth(struct uh_client *cl)

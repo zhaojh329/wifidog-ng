@@ -79,6 +79,7 @@ func generateToken(mac string) string {
 type client struct {
     token string
     ip string
+    url string
 }
 
 type weixinConfig struct {
@@ -121,11 +122,14 @@ func main() {
             gw_port := r.URL.Query().Get("gw_port")
             ip := r.URL.Query().Get("ip")
             mac := r.URL.Query().Get("mac")
+            url := r.URL.Query().Get("url")
             token := generateToken(mac)
 
-            clients[mac] = client{token, ip}
+            clients[mac] = client{token, ip, url}
         
             log.Println("New client:", mac, token)
+
+            log.Println("xxx url:", url)
 
             uri := fmt.Sprintf("http://%s:%s/wifidog/auth?token=%s", gw_address, gw_port, token)
             http.Redirect(w, r, uri, http.StatusFound)
@@ -171,7 +175,7 @@ func main() {
         ip := r.URL.Query().Get("ip")
         token := generateToken(mac)
 
-        clients[mac] = client{token, ip}
+        clients[mac] = client{token, ip, ""}
 
         log.Println("New Weixin client:", mac, token)
 

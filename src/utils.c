@@ -243,11 +243,13 @@ int urlencode(char *buf, int blen, const char *src, int slen)
     static const char hex[] = "0123456789abcdef";
     int i, len = 0;
 
+    blen -= 1;
+
     for (i = 0; (i < slen) && (len < blen); i++) {
         if(isalnum(src[i]) || (src[i] == '-') || (src[i] == '_') ||
             (src[i] == '.') || (src[i] == '~')) {
             buf[len++] = src[i];
-        } else if ((len+3) <= blen) {
+        } else if ((len + 3) <= blen) {
             buf[len++] = '%';
             buf[len++] = hex[(src[i] >> 4) & 15];
             buf[len++] = hex[ src[i]       & 15];
@@ -257,5 +259,7 @@ int urlencode(char *buf, int blen, const char *src, int slen)
         }
     }
 
+    if (i == slen)
+        buf[slen] = 0;
     return (i == slen) ? len : -1;
 }
