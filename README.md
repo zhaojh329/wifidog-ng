@@ -7,6 +7,7 @@
 [libuclient]: https://git.openwrt.org/?p=project/uclient.git
 [libuci]: https://git.openwrt.org/?p=project/uci.git
 [WifiDog]: https://github.com/wifidog/wifidog-gateway
+[pingcheck]: https://github.com/br101/pingcheck
 
 Next generation [WifiDog]
 
@@ -26,6 +27,7 @@ embedded linux(LEDE/Openwrt) system.
 * [libuhttpd]
 * [libuclient]
 * [libuci]
+* [pingcheck]
 
 # How to use
 add new feed into "feeds.conf.default":
