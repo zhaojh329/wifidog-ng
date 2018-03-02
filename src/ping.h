@@ -19,6 +19,7 @@
 #define _PING_H
 
 void start_heartbeat();
+void stop_heartbeat();
 
 #endif
 

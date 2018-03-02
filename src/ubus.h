@@ -15,26 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <libubox/ulog.h>
-#include <uhttpd/uhttpd.h>
+#ifndef _UBUS_H
+#define _UBUS_H
 
-#include "config.h"
-#include "auth.h"
-#include "ubus.h"
+int ubus_init();
 
-int main(int argc, char **argv)
-{
-    if (parse_config())
-        return -1;
-    
-    uloop_init();
-
-    ubus_init();
-    auth_init();
-    
-    uloop_run();
-
-    ULOG_INFO("wifidog-ng exit.\n");
-    
-    return 0;
-}
+#endif

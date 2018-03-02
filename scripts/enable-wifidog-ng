@@ -1,0 +1,25 @@
+#!/bin/sh
+
+enabled=$(uci get wifidog.@gateway[0].enabled)
+interface=$(uci get wifidog.@gateway[0].ifname)
+port=$(uci get wifidog.@gateway[0].port)
+ssl_port=$(uci get wifidog.@gateway[0].ssl_port)
+authserver=$(uci get wifidog.@authserver[0].host)
+
+[ $enabled -eq 1 ] || exit 0
+
+modprobe wifidog
+
+echo "interface=$interface" > /proc/wifidog/config
+echo "port=$port" > /proc/wifidog/config
+echo "ssl_port=$ssl_port" > /proc/wifidog/config
+
+authserver=$(resolveip -4 $authserver)
+for ip in $authserver
+do
+    echo "+$ip" > /proc/wifidog/ip
+done
+
+echo "enabled=1" > /proc/wifidog/config
+
+logger -t "wifidog" "check internet online, enable wifidog-ng"

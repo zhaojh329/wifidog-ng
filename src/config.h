@@ -37,10 +37,6 @@ struct config {
         const char *ping_path;
         const char *auth_path;
     } authserver;
-
-    struct {
-
-    } popular_server;
 };
 
 int parse_config();

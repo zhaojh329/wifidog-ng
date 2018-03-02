@@ -19,5 +19,6 @@
 #define _COUNTERS_H
 
 void start_counters();
+void stop_counters();
 
 #endif

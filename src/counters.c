@@ -88,12 +88,16 @@ static void counters(struct uloop_timeout *t)
     blob_buf_free(&b);
 }
 
+static struct uloop_timeout timeout = {
+    .cb = counters
+};
+
 void start_counters()
 {
-    static struct uloop_timeout timeout = {
-        .cb = counters
-    };
-    
     uloop_timeout_set(&timeout, 0);
 }
 
+void stop_counters()
+{
+    uloop_timeout_cancel(&timeout);
+}

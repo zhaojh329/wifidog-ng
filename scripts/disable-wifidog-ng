@@ -1,0 +1,5 @@
+#!/bin/sh
+
+logger -t "wifidog" "check internet offline, disable wifidog-ng"
+
+echo "enabled=0" > /proc/wifidog/config

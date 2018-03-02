@@ -49,14 +49,19 @@ static void ping(struct uloop_timeout *t)
         conf->gw_id, info.uptime, info.freeram * info.mem_unit, info.loads[0], time(NULL) - start_time);
 }
 
+static struct uloop_timeout timeout = {
+    .cb = ping
+};
+
 void start_heartbeat()
 {
-    static struct uloop_timeout timeout = {
-        .cb = ping
-    };
-
-    time(&start_time);
+    if (start_time == 0)
+        time(&start_time);
     
     uloop_timeout_set(&timeout, 0);
 }
 
+void stop_heartbeat()
+{
+    uloop_timeout_cancel(&timeout);
+}

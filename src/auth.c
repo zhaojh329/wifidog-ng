@@ -22,7 +22,6 @@
 #include "ping.h"
 #include "config.h"
 #include "http.h"
-#include "counters.h"
 
 struct authserver_request_param {
     struct uh_client *cl;
@@ -198,11 +197,6 @@ int auth_init()
         return -1;
 #endif
     termianl_temppass_init();
-    allow_destip(conf->authserver.host);
-    start_heartbeat();
-    start_counters();
-    enable_kmod(true, conf->gw_interface, conf->gw_port, conf->gw_ssl_port);
 
     return 0;
 }
-

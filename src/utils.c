@@ -132,25 +132,6 @@ int arp_get(const char *ifname, const char *ip, char *dst, int len)
     return 0;
 }
 
-int enable_kmod(bool enable, const char *interface, int port, int ssl_port)
-{
-    FILE *fp = fopen("/proc/wifidog/config", "w");
-    if (!fp) {
-        ULOG_ERR("fopen:%s\n", strerror(errno));
-        return -1;
-    }
-
-    if (enable) {
-        fprintf(fp, "interface=%s\n", interface);
-        fprintf(fp, "port=%d\n", port);
-        fprintf(fp, "ssl_port=%d\n", ssl_port);
-    }
-
-    fprintf(fp, "enabled=%d\n", enable ? 1 : 0);
-    fclose(fp);
-    return 0;
-}
-
 static void temppass_timer_cb(struct uloop_timeout *t)
 {
     struct termianl_temppass *termianl = container_of(t, struct termianl_temppass, timer);
