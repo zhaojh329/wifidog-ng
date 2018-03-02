@@ -98,9 +98,9 @@ static void http_callback_404(struct uh_client *cl)
     snprintf(tmpurl, (sizeof(tmpurl) - 1), "http://%s%s", cl->get_header(cl, "host"), cl->get_url(cl));
     urlencode(url, sizeof(url), tmpurl, strlen(tmpurl));
 
-    cl->redirect(cl, 302, "http://%s:%d%s%sgw_address=%s&gw_port=%d&ip=%s&mac=%s&ssid=%s&url=%s",
+    cl->redirect(cl, 302, "http://%s:%d%s%sgw_address=%s&gw_port=%d&gw_id=%s&ip=%s&mac=%s&ssid=%s&url=%s",
         conf->authserver.host, conf->authserver.port, conf->authserver.path, conf->authserver.login_path,
-        conf->gw_address, conf->gw_port, remote_addr, mac, conf->ssid ? conf->ssid : "", url);
+        conf->gw_address, conf->gw_port, conf->gw_id, remote_addr, mac, conf->ssid ? conf->ssid : "", url);
 }
 
 static void http_callback_auth(struct uh_client *cl)
