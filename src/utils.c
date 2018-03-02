@@ -30,8 +30,8 @@
 #include <libubox/avl-cmp.h>
 #include <libubox/avl.h>
 #include "utils.h"
+#include "config.h"
 
-#define TEMPPASS_TIME  5000
 static struct avl_tree temppass_tree;
 
 struct termianl_temppass {
@@ -144,6 +144,7 @@ static void temppass_timer_cb(struct uloop_timeout *t)
 int allow_termianl(const char *mac, const char *token, bool temporary)
 {
     struct termianl_temppass *termianl;
+    struct config *conf = get_config();
 
     FILE *fp = fopen("/proc/wifidog/term", "w");
     if (!fp) {
@@ -159,7 +160,7 @@ int allow_termianl(const char *mac, const char *token, bool temporary)
     termianl = avl_find_element(&temppass_tree, mac, termianl, node);
     if (termianl) {
         if (temporary) {
-            uloop_timeout_set(&termianl->timer, TEMPPASS_TIME);
+            uloop_timeout_set(&termianl->timer, conf->temppass_time * 1000);
             return 0;
         }
         uloop_timeout_cancel(&termianl->timer);
@@ -174,7 +175,7 @@ int allow_termianl(const char *mac, const char *token, bool temporary)
 
         termianl->node.key = strcpy(termianl->mac, mac);
         termianl->timer.cb = temppass_timer_cb;
-        uloop_timeout_set(&termianl->timer, TEMPPASS_TIME);
+        uloop_timeout_set(&termianl->timer, conf->temppass_time * 1000);
         avl_insert(&temppass_tree, &termianl->node);
     }
     return 0;

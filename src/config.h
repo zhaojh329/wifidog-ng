@@ -26,6 +26,7 @@ struct config {
     int gw_port;
     int gw_ssl_port;
     int checkinterval;
+    int temppass_time;
 
     struct {
         int port;

@@ -28,6 +28,7 @@ static struct config conf = {
     .gw_port = 2060,
     .gw_ssl_port = 8443,
     .checkinterval = 30,
+    .temppass_time = 30,
     .authserver = {
         .port = 80,
         .path = "/wifidog/",
@@ -47,6 +48,7 @@ enum {
 	GATEWAY_ATTR_PORT,
 	GATEWAY_ATTR_SSL_PORT,
 	GATEWAY_ATTR_CHECKINTERVAL,
+    GATEWAY_ATTR_TEMPPASS_TIME,
 	GATEWAY_ATTR_MAX
 };
 
@@ -57,7 +59,8 @@ static const struct blobmsg_policy gateway_attrs[GATEWAY_ATTR_MAX] = {
     [GATEWAY_ATTR_SSID] = { .name = "ssid", .type = BLOBMSG_TYPE_STRING },
 	[GATEWAY_ATTR_PORT] = { .name = "port", .type = BLOBMSG_TYPE_INT32 },
 	[GATEWAY_ATTR_SSL_PORT] = { .name = "ssl_port", .type = BLOBMSG_TYPE_INT32 },
-	[GATEWAY_ATTR_CHECKINTERVAL] = { .name = "checkinterval", .type = BLOBMSG_TYPE_INT32 }
+	[GATEWAY_ATTR_CHECKINTERVAL] = { .name = "checkinterval", .type = BLOBMSG_TYPE_INT32 },
+    [GATEWAY_ATTR_TEMPPASS_TIME] = { .name = "temppass_time", .type = BLOBMSG_TYPE_INT32 }
 };
 
 static const struct uci_blob_param_list gateway_attr_list = {
@@ -97,6 +100,9 @@ static void parse_gateway(struct uci_section *s)
 
     if (tb[GATEWAY_ATTR_CHECKINTERVAL])
         conf.checkinterval = blobmsg_get_u32(tb[GATEWAY_ATTR_CHECKINTERVAL]);
+
+    if (tb[GATEWAY_ATTR_TEMPPASS_TIME])
+        conf.temppass_time = blobmsg_get_u32(tb[GATEWAY_ATTR_TEMPPASS_TIME]);
 }
 
 enum {
