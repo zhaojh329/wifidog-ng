@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head lang="zh-CN">
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
     <title>微信连Wi-Fi</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -11,6 +11,7 @@
 	<link rel="stylesheet" href="/weixin/css/style-simple-follow.css"/>
 	<script type="text/javascript" src="https://wifi.weixin.qq.com/resources/js/wechatticket/wechatutil.js" ></script>
 	<script src="/weixin/js/md5.min.js"></script>
+
 	<script type="text/javascript">
         function getQueryString(name) {
             var reg = new RegExp("(^|&)"+ name + "=([^&]*)(&|$)");
@@ -20,16 +21,14 @@
             return null;
         }
 
-        function ajax(url, cb) {
-            var xmlhttp;
+        function asyncScript(url) {
+            var script = document.createElement('script');
+            script.setAttribute('src', url);
+            document.getElementsByTagName('head')[0].appendChild(script);
+        }
 
-            if (window.XMLHttpRequest) {
-                //  IE7+, Firefox, Chrome, Opera, Safari
-                xmlhttp=new XMLHttpRequest();
-            } else {
-                // IE6, IE5
-                xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
-            }
+        function ajax(url, cb) {
+            var xmlhttp = new XMLHttpRequest();
 
             xmlhttp.onreadystatechange = function() {
                 if (xmlhttp.readyState == 4 && xmlhttp.status == 200)
@@ -39,27 +38,28 @@
             xmlhttp.send();
         }
 
-		function callWechatBrowser() {
-            var gw_address = getQueryString('gw_address');
-            var gw_port = getQueryString('gw_port');
+		function startWeChatAuth() {
+            ajax(window.location.origin + '/wifidog/weixincfg', function(responseText) {
+                var cfg = JSON.parse(responseText);
+                var appId = cfg.appid;
+                var shopId = cfg.shopid;
+                var secretkey = cfg.secretkey;
+                var extend = 'demoNew';
+                var timestamp = new Date().getTime();
+                var authUrl = window.location.origin + '/wifidog/weixin' + window.location.search;
+                var mac = getQueryString('mac').toLowerCase();
+                var ssid = getQueryString('ssid');
 
-            ajax("http://" + gw_address + ":" + gw_port + "/wifidog/temppass", function(responseText) {
-                ajax(window.location.origin + '/wifidog/weixincfg', function(responseText) {
-                    var cfg = JSON.parse(responseText);
-                    var appId = cfg.appid;
-                    var shopId = cfg.shopid;
-                    var secretkey = cfg.secretkey;
-                    var extend = 'demoNew';
-                    var timestamp = new Date().getTime();
-                    var authUrl = window.location.origin + '/wifidog/weixin' + window.location.search;
-                    var mac = getQueryString('mac').toLowerCase();
-                    var ssid = getQueryString('ssid');
-
-                    var sign = md5(appId + extend + timestamp + shopId + authUrl + mac + ssid + secretkey);
-                    Wechat_GotoRedirect(appId, extend, timestamp, sign, shopId, authUrl, mac, ssid);
-                });
+                var sign = md5(appId + extend + timestamp + shopId + authUrl + mac + ssid + secretkey);
+                Wechat_GotoRedirect(appId, extend, timestamp, sign, shopId, authUrl, mac, ssid);
             });
 		}
+
+        function temporary_pass() {
+            var gw_address = getQueryString('gw_address');
+            var gw_port = getQueryString('gw_port');
+            asyncScript('http://' + gw_address + ':' + gw_port + '/wifidog/temppass?script=startWeChatAuth();');
+        }
 	</script>
 </head>
 <body class="mod-simple-follow">
@@ -75,7 +75,7 @@
     </div>
     <div class="mod-simple-follow-page__attention">
         <p class="mod-simple-follow-page__attention-txt">欢迎使用微信连Wi-Fi</p>
-        <a class="mod-simple-follow-page__attention-btn" onclick="callWechatBrowser()">一键打开微信连Wi-Fi</a>
+        <a class="mod-simple-follow-page__attention-btn" onclick="temporary_pass()">一键打开微信连Wi-Fi</a>
     </div>
 </div>
 </body>

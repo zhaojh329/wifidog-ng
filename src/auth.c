@@ -139,6 +139,7 @@ static void http_callback_temppass(struct uh_client *cl)
     char mac[18] = "";
     struct config *conf = get_config();
     const char *remote_addr = cl->get_peer_addr(cl);
+    const char *script = cl->get_var(cl, "script");
 
     if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
         cl->send_header(cl, 200, "OK", -1);
@@ -152,10 +153,8 @@ static void http_callback_temppass(struct uh_client *cl)
     allow_termianl(mac, NULL, true);
 
     cl->send_header(cl, 200, "OK", -1);
-    cl->append_header(cl, "Access-Control-Allow-Origin", "*");
-    cl->append_header(cl, "Access-Control-Allow-Method", "GET");
     cl->header_end(cl);
-    cl->chunk_printf(cl, "<h1>OK</h1>");
+    cl->chunk_printf(cl, "%s", script ? script : "");
     cl->request_done(cl);
 }
 
