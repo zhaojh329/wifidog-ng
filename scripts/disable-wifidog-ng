@@ -2,4 +2,6 @@
 
 logger -t "wifidog" "check internet offline, disable wifidog-ng"
 
+ubus call wifidog status '{"internet": false}'
+
 echo "enabled=0" > /proc/wifidog/config
