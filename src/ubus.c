@@ -82,6 +82,8 @@ int ubus_init()
 		return -1;
 	}
 
+	ubus_add_uloop(ctx);
+
 	ret = ubus_add_object(ctx, &server_object);
 	if (ret) {
 		ULOG_ERR("Failed to add server object: %s\n", ubus_strerror(ret));
