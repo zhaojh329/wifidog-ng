@@ -1,6 +1,6 @@
 # WifiDog-ng
 
-![](https://img.shields.io/badge/license-GPLV3-brightgreen.svg?style=plastic "License")
+![](https://img.shields.io/badge/license-GPL2-brightgreen.svg?style=plastic "License")
 
 [libuhttpd]: https://github.com/zhaojh329/libuhttpd
 [libubox]: https://git.openwrt.org/?p=project/libubox.git
