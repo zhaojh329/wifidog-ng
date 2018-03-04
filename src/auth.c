@@ -74,9 +74,9 @@ static void authserver_request(struct uh_client *cl, const char *type, const cha
     param->cl = cl;
     strcpy(param->token, token);
 
-    httpget(authserver_request_cb, param, "http://%s:%d%s%sstage=%s&ip=%s&mac=%s&token=%s",
+    httpget(authserver_request_cb, param, "http://%s:%d%s%sstage=%s&gw_id=%s&ip=%s&mac=%s&token=%s",
                         conf->authserver.host, conf->authserver.port, conf->authserver.path,
-                        conf->authserver.auth_path, type, ip, mac, token);
+                        conf->authserver.auth_path, type, conf->gw_id, ip, mac, token);
 }
 
 static void http_callback_404(struct uh_client *cl)
