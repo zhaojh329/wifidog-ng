@@ -138,7 +138,7 @@ int httppost(http_cb cb, void *data, const char *post_data, const char *url, ...
 
     if (post_data) {
         uclient_http_set_request_type(cl, "POST");
-        uclient_http_set_header(cl, "Content-Type", "application/x-www-form-urlencoded");
+        uclient_http_set_header(cl, "Content-Type", "application/json");
         uclient_write(cl, post_data, strlen(post_data));
     }
 
