@@ -131,8 +131,6 @@ func main() {
         
             log.Println("New client:", mac, token)
 
-            log.Println("xxx url:", url)
-
             uri := fmt.Sprintf("http://%s:%s/wifidog/auth?token=%s", gw_address, gw_port, token)
             http.Redirect(w, r, uri, http.StatusFound)
         }
