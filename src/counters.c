@@ -26,7 +26,7 @@
 #include "http.h"
 #include "config.h"
 #include "auth.h"
-#include "utils.h"
+#include "termianl.h"
 
 enum {
     COUNTERS_RESP

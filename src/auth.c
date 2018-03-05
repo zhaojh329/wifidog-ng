@@ -24,6 +24,7 @@
 #include "ping.h"
 #include "config.h"
 #include "http.h"
+#include "termianl.h"
 
 struct authserver_request_param {
     struct uh_client *cl;
@@ -197,7 +198,6 @@ int auth_init()
     if (http_init(conf->gw_ssl_port, true))
         return -1;
 #endif
-    termianl_temppass_init();
 
     return 0;
 }

@@ -21,8 +21,9 @@
 #include <uhttpd/uhttpd.h>
 
 #include "config.h"
-#include "auth.h"
+#include "termianl.h"
 #include "ubus.h"
+#include "auth.h"
 
 int main(int argc, char **argv)
 {
@@ -32,6 +33,7 @@ int main(int argc, char **argv)
     uloop_init();
 
     ubus_init();
+    termianl_init();
     auth_init();
     
     uloop_run();
