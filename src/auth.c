@@ -86,7 +86,10 @@ static void http_callback_404(struct uh_client *cl)
     const char *remote_addr = cl->get_peer_addr(cl);
     char mac[18] = "";
     static char tmpurl[2048] = "", url[8192] = "";
-    
+    static char *redirect_html = "<!doctype html><html><body><script type=\"text/javascript\">"
+                "setTimeout(function() {location.href = 'http://%s:%d%s%sgw_address=%s&"
+                "gw_port=%d&gw_id=%s&ip=%s&mac=%s&ssid=%s&url=%s';}, 1);</script></body></html>";
+
     if (cl->request.method != UH_HTTP_MSG_GET) {
         cl->request_done(cl);
         return;
@@ -101,9 +104,13 @@ static void http_callback_404(struct uh_client *cl)
     snprintf(tmpurl, (sizeof(tmpurl) - 1), "http://%s%s", cl->get_header(cl, "host"), cl->get_url(cl));
     urlencode(url, sizeof(url), tmpurl, strlen(tmpurl));
 
-    cl->redirect(cl, 302, "http://%s:%d%s%sgw_address=%s&gw_port=%d&gw_id=%s&ip=%s&mac=%s&ssid=%s&url=%s",
-        conf->authserver.host, conf->authserver.port, conf->authserver.path, conf->authserver.login_path,
-        conf->gw_address, conf->gw_port, conf->gw_id, remote_addr, mac, conf->ssid ? conf->ssid : "", url);
+
+    cl->send_header(cl, 200, "OK", -1);
+    cl->header_end(cl);
+    cl->chunk_printf(cl, redirect_html, conf->authserver.host, conf->authserver.port, conf->authserver.path,
+        conf->authserver.login_path, conf->gw_address, conf->gw_port, conf->gw_id, remote_addr, mac,
+        conf->ssid ? conf->ssid : "", url);
+    cl->request_done(cl);
 }
 
 static void http_callback_auth(struct uh_client *cl)
