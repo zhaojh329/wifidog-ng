@@ -83,7 +83,7 @@ To this the auth server is expected to respond with an http message containing t
 
 ## Auth
 `http://gw_address:gw_port/wifidog/auth?token=xx`
-G
+
 ## Auth confirm
 `http://authserver/wifidog/auth?stage=login&ip=xx&max=xx&token=xx&incoming=xx&outgoing=xx`
 
