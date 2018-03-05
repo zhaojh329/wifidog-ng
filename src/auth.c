@@ -27,6 +27,7 @@
 #include "termianl.h"
 
 struct authserver_request_param {
+    bool login;
     struct uh_client *cl;
     char token[33];
 };
@@ -60,6 +61,11 @@ static void authserver_request_cb(void *data, char *content)
             conf->authserver.portal_path, conf->gw_id);
         free(param);
         return;
+    } else if (param->login) {
+        cl->redirect(cl, 302, "http://%s:%d%s%sgw_id=%s", conf->authserver.host, conf->authserver.port, conf->authserver.path,
+            conf->authserver.msg_path, conf->gw_id);
+        free(param);
+        return;
     }
 
 deny:
@@ -73,6 +79,7 @@ static void authserver_request(struct uh_client *cl, const char *type, const cha
     struct authserver_request_param *param = calloc(1, sizeof(struct authserver_request_param));
 
     param->cl = cl;
+    param->login = !strcmp(type, "login");
     strcpy(param->token, token);
 
     httpget(authserver_request_cb, param, "http://%s:%d%s%sstage=%s&gw_id=%s&ip=%s&mac=%s&token=%s",
