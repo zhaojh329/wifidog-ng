@@ -1,6 +1,6 @@
 # WifiDog-ng
 
-![](https://img.shields.io/badge/license-GPL2-brightgreen.svg?style=plastic "License")
+![](https://img.shields.io/badge/license-LGPL2-brightgreen.svg?style=plastic "License")
 
 [libuhttpd]: https://github.com/zhaojh329/libuhttpd
 [libubox]: https://git.openwrt.org/?p=project/libubox.git
@@ -17,7 +17,6 @@ embedded linux(LEDE/Openwrt) system.
 `Keep Watching for More Actions on This Space`
 
 # Features
-* Compatible with original [WifiDog] protocol
 * Based on [libubox]: Single threaded, Fully asynchronous, No blocking operation at all
 * Writing kernel module to implement authentication management instead of using iptables to create firewall rules
 * Support HTTPS: OpenSSL, mbedtls and CyaSSl(wolfssl)
