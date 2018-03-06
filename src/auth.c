@@ -174,7 +174,7 @@ static int http_init(int port, bool ssl)
     
     srv = uh_server_new("0.0.0.0", port);
     if (!srv)
-        goto err;
+        return -1;
     
     ULOG_INFO("Listen on: *:%d\n", port);
 

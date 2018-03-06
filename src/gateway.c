@@ -32,12 +32,16 @@ int main(int argc, char **argv)
     
     uloop_init();
 
+    if (auth_init() < 0)
+        goto EXIT;
+
     ubus_init();
     termianl_init();
-    auth_init();
     
     uloop_run();
 
+EXIT:
+    uloop_done();
     ULOG_INFO("wifidog-ng exit.\n");
     
     return 0;
