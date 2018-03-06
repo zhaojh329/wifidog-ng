@@ -209,21 +209,39 @@ int parse_config()
         conf.gw_address = strdup(buf);
     }
     
-    asprintf((char **)&conf.login_url, "http://%s:%d%s%s?gw_address=%s&gw_port=%d&gw_id=%s&ssid=%s",
-        conf.authserver.host, conf.authserver.port, conf.authserver.path, conf.authserver.login_path,
-        conf.gw_address, conf.gw_port, conf.gw_id, conf.ssid ? conf.ssid : "");
+    if (conf.authserver.port == 80) {
+        asprintf((char **)&conf.login_url, "http://%s%s%s?gw_address=%s&gw_port=%d&gw_id=%s&ssid=%s",
+            conf.authserver.host, conf.authserver.path, conf.authserver.login_path,
+            conf.gw_address, conf.gw_port, conf.gw_id, conf.ssid ? conf.ssid : "");
 
-    asprintf((char **)&conf.auth_url, "http://%s:%d%s%s?gw_id=%s",
-        conf.authserver.host, conf.authserver.port, conf.authserver.path, conf.authserver.auth_path, conf.gw_id);
+        asprintf((char **)&conf.auth_url, "http://%s%s%s?gw_id=%s",
+            conf.authserver.host, conf.authserver.path, conf.authserver.auth_path, conf.gw_id);
 
-    asprintf((char **)&conf.ping_url, "http://%s:%d%s%s?gw_id=%s",
-        conf.authserver.host, conf.authserver.port, conf.authserver.path, conf.authserver.ping_path, conf.gw_id);
+        asprintf((char **)&conf.ping_url, "http://%s%s%s?gw_id=%s",
+            conf.authserver.host, conf.authserver.path, conf.authserver.ping_path, conf.gw_id);
 
-    asprintf((char **)&conf.portal_url, "http://%s:%d%s%s?gw_id=%s",
-        conf.authserver.host, conf.authserver.port, conf.authserver.path, conf.authserver.portal_path, conf.gw_id);
+        asprintf((char **)&conf.portal_url, "http://%s%s%s?gw_id=%s",
+            conf.authserver.host, conf.authserver.path, conf.authserver.portal_path, conf.gw_id);
 
-    asprintf((char **)&conf.msg_url, "http://%s:%d%s%s?gw_id=%s",
-        conf.authserver.host, conf.authserver.port, conf.authserver.path, conf.authserver.msg_path, conf.gw_id);
+        asprintf((char **)&conf.msg_url, "http://%s%s%s?gw_id=%s",
+            conf.authserver.host, conf.authserver.path, conf.authserver.msg_path, conf.gw_id);
+    } else {
+        asprintf((char **)&conf.login_url, "http://%s:%d%s%s?gw_address=%s&gw_port=%d&gw_id=%s&ssid=%s",
+            conf.authserver.host, conf.authserver.port, conf.authserver.path, conf.authserver.login_path,
+            conf.gw_address, conf.gw_port, conf.gw_id, conf.ssid ? conf.ssid : "");
+
+        asprintf((char **)&conf.auth_url, "http://%s:%d%s%s?gw_id=%s",
+            conf.authserver.host, conf.authserver.port, conf.authserver.path, conf.authserver.auth_path, conf.gw_id);
+
+        asprintf((char **)&conf.ping_url, "http://%s:%d%s%s?gw_id=%s",
+            conf.authserver.host, conf.authserver.port, conf.authserver.path, conf.authserver.ping_path, conf.gw_id);
+
+        asprintf((char **)&conf.portal_url, "http://%s:%d%s%s?gw_id=%s",
+            conf.authserver.host, conf.authserver.port, conf.authserver.path, conf.authserver.portal_path, conf.gw_id);
+
+        asprintf((char **)&conf.msg_url, "http://%s:%d%s%s?gw_id=%s",
+            conf.authserver.host, conf.authserver.port, conf.authserver.path, conf.authserver.msg_path, conf.gw_id);
+    }
 
     return 0;
 }
