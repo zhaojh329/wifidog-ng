@@ -57,13 +57,11 @@ static void authserver_request_cb(void *data, char *content)
     if (code == 1) {
         allow_termianl(mac, param->token, false);
         
-        cl->redirect(cl, 302, "http://%s:%d%s%sgw_id=%s", conf->authserver.host, conf->authserver.port, conf->authserver.path,
-            conf->authserver.portal_path, conf->gw_id);
+        cl->redirect(cl, 302, conf->portal_url);
         free(param);
         return;
     } else if (param->login) {
-        cl->redirect(cl, 302, "http://%s:%d%s%sgw_id=%s", conf->authserver.host, conf->authserver.port, conf->authserver.path,
-            conf->authserver.msg_path, conf->gw_id);
+        cl->redirect(cl, 302, conf->msg_url);
         free(param);
         return;
     }
@@ -82,9 +80,7 @@ static void authserver_request(struct uh_client *cl, const char *type, const cha
     param->login = !strcmp(type, "login");
     strcpy(param->token, token);
 
-    httpget(authserver_request_cb, param, "http://%s:%d%s%sstage=%s&gw_id=%s&ip=%s&mac=%s&token=%s",
-                        conf->authserver.host, conf->authserver.port, conf->authserver.path,
-                        conf->authserver.auth_path, type, conf->gw_id, ip, mac, token);
+    httpget(authserver_request_cb, param, "%s&stage=%s&ip=%s&mac=%s&token=%s", conf->auth_url, type, ip, mac, token);
 }
 
 static void http_callback_404(struct uh_client *cl)
@@ -94,8 +90,7 @@ static void http_callback_404(struct uh_client *cl)
     char mac[18] = "";
     static char tmpurl[2048] = "", url[8192] = "";
     static char *redirect_html = "<!doctype html><html><body><script type=\"text/javascript\">"
-                "setTimeout(function() {location.href = 'http://%s:%d%s%sgw_address=%s&"
-                "gw_port=%d&gw_id=%s&ip=%s&mac=%s&ssid=%s&url=%s';}, 1);</script></body></html>";
+                "setTimeout(function() {location.href = '%s&ip=%s&mac=%s&url=%s';}, 1);</script></body></html>";
 
     if (cl->request.method != UH_HTTP_MSG_GET) {
         cl->request_done(cl);
@@ -114,9 +109,7 @@ static void http_callback_404(struct uh_client *cl)
 
     cl->send_header(cl, 200, "OK", -1);
     cl->header_end(cl);
-    cl->chunk_printf(cl, redirect_html, conf->authserver.host, conf->authserver.port, conf->authserver.path,
-        conf->authserver.login_path, conf->gw_address, conf->gw_port, conf->gw_id, remote_addr, mac,
-        conf->ssid ? conf->ssid : "", url);
+    cl->chunk_printf(cl, redirect_html, conf->login_url, remote_addr, mac, url);
     cl->request_done(cl);
 }
 

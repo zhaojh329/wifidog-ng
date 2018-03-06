@@ -40,6 +40,12 @@ struct config {
         const char *ping_path;
         const char *auth_path;
     } authserver;
+
+    const char *login_url;
+    const char *auth_url;
+    const char *portal_url;
+    const char *ping_url;
+    const char *msg_url;
 };
 
 int parse_config();

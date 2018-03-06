@@ -146,9 +146,7 @@ static void counters(struct uloop_timeout *t)
     blobmsg_close_table(&b, array);
     p = blobmsg_format_json(b.head, true);
 
-    httppost(counters_cb, NULL, p, "http://%s:%d%s%sstage=counters&gw_id=%s",
-            conf->authserver.host, conf->authserver.port, conf->authserver.path, 
-            conf->authserver.auth_path, conf->gw_id);
+    httppost(counters_cb, NULL, p, "%s&stage=counters", conf->auth_url);
 
     free(p);
     blob_buf_free(&b);

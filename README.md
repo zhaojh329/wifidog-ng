@@ -66,11 +66,11 @@ Select package wifidog-ng in menuconfig and compile new image.
 | host        | yes       | no              |
 | port        | no        | 80              |
 | path        | no        | /wifidog        |
-| login_path  | no        | login?          |
-| portal_path | no        | portal?         |
-| msg_path    | no        | gw_message.php? |
-| ping_path   | no        | ping?           |
-| auth_path   | no        | auth?           |
+| login_path  | no        | login           |
+| portal_path | no        | portal          |
+| msg_path    | no        | gw_message.php  |
+| ping_path   | no        | ping            |
+| auth_path   | no        | auth            |
 
 # Protocol
 ## Gateway heartbeating (Ping Protocol)

@@ -46,9 +46,8 @@ static void ping(struct uloop_timeout *t)
         return;
     }
 
-    httpget(ping_cb, NULL, "http://%s:%d%s%sgw_id=%s&sys_uptime=%ld&sys_memfree=%lu&sys_load=%lu&wifidog_uptime=%lu",
-        conf->authserver.host, conf->authserver.port, conf->authserver.path, conf->authserver.ping_path,
-        conf->gw_id, info.uptime, info.freeram * info.mem_unit, info.loads[0], time(NULL) - start_time);
+    httpget(ping_cb, NULL, "%s&sys_uptime=%ld&sys_memfree=%lu&sys_load=%lu&wifidog_uptime=%lu",
+        conf->ping_url, info.uptime, info.freeram * info.mem_unit, info.loads[0], time(NULL) - start_time);
 }
 
 static struct uloop_timeout timeout = {
