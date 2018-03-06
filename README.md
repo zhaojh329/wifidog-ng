@@ -17,7 +17,7 @@ embedded linux(LEDE/Openwrt) system.
 `Keep Watching for More Actions on This Space`
 
 # Features
-* Based on [libubox]: Single threaded, Fully asynchronous, No blocking operation at all
+* Based on [libubox] - Use epoll
 * Writing kernel module to implement authentication management instead of using iptables to create firewall rules
 * Support HTTPS: OpenSSL, mbedtls and CyaSSl(wolfssl)
 
