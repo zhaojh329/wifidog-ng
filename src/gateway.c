@@ -24,6 +24,7 @@
 #include "termianl.h"
 #include "ubus.h"
 #include "auth.h"
+#include "utils.h"
 
 int main(int argc, char **argv)
 {
@@ -35,12 +36,14 @@ int main(int argc, char **argv)
     if (auth_init() < 0)
         goto EXIT;
 
+    wifidog_runqueue_init();
     ubus_init();
     termianl_init();
     
     uloop_run();
 
 EXIT:
+    wifidog_runqueue_finish();
     uloop_done();
     ULOG_INFO("wifidog-ng exit.\n");
     

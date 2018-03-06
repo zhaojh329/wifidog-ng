@@ -1,0 +1,10 @@
+#!/bin/sh
+
+if [ "$GLOBAL" = "ONLINE" ];
+then
+	ubus call wifidog status '{"internet": true}'
+else
+	ubus call wifidog status '{"internet": false}'
+fi
+
+logger -t "wifidog" "check internet $$GLOBAL"
