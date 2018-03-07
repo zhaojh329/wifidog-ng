@@ -24,19 +24,12 @@
 #include <unistd.h>
 #include <errno.h>
 #include <ctype.h>
-#include <netdb.h>
 #include <net/if_arp.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <libubox/ulog.h>
-#include <libubox/runqueue.h>
 
-static struct runqueue runq;
-
-struct resolve_task {
-    struct runqueue_process proc;
-    char domain[0];
-};
+#include "resolv.h"
 
 int get_iface_ip(const char *ifname, char *dst, int len)
 {
@@ -175,16 +168,6 @@ int allow_destip(const char *ip)
     return 0;
 }
 
-void wifidog_runqueue_init()
-{
-    runqueue_init(&runq);
-    runq.max_running_tasks = 1;
-}
-
-void wifidog_runqueue_finish()
-{
-    runqueue_kill(&runq);
-}
 int enable_kmod(const char *interface, int port, int ssl_port)
 {
     FILE *fp = fopen("/proc/wifidog/config", "w");
@@ -218,61 +201,19 @@ int disable_kmod()
     return 0;
 }
 
-static void resolve_run(struct runqueue *q, struct runqueue_task *t)
+static void my_resolv_cb(struct hostent *he, void *data)
 {
-    struct resolve_task *r = container_of(t, struct resolve_task, proc.task);
-    struct addrinfo hints = {
-        .ai_family = AF_INET,
-        .ai_socktype = SOCK_STREAM,
-        .ai_flags = AI_PASSIVE
-    };
-    struct addrinfo *result, *rp;
-    pid_t pid;
+    char **p;
+    char addr_buf[INET_ADDRSTRLEN];
 
-    pid = fork();
-    if (pid < 0) {
-        ULOG_ERR("resolve_run fork failed!\n");
-        return;
+    for (p = he->h_addr_list; *p; p++) {
+        inet_ntop(he->h_addrtype, *p, addr_buf, sizeof(addr_buf));
+        allow_destip(addr_buf);
     }
-
-    if (pid) {
-        runqueue_process_add(q, &r->proc, pid);
-        return;
-    }
-
-    uloop_done();
-
-    if (getaddrinfo(r->domain, NULL, &hints, &result))
-        return;
-
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
-        if (rp->ai_family == AF_INET) {
-            char ipbuf[16] = "";
-            struct sockaddr_in *addr = (struct sockaddr_in *)rp->ai_addr;
-
-            ULOG_INFO("Resolve %s %s\n", r->domain, inet_ntop(AF_INET, &addr->sin_addr, ipbuf, 16));
-
-            allow_destip(ipbuf);
-        }
-    }
-}
-
-static void resolve_complete(struct runqueue *q, struct runqueue_task *p)
-{
-    struct resolve_task *r = container_of(p, struct resolve_task, proc.task);
-
-    ULOG_INFO("Resolve %s finish\n", r->domain);
-    free(r);
 }
 
 int allow_domain(const char *domain)
 {
-    static const struct runqueue_task_type resolve_type = {
-        .run = resolve_run,
-        .cancel = runqueue_process_cancel_cb,
-        .kill = runqueue_process_kill_cb
-    };
-    struct resolve_task *r;
     int ip[4];
 
     if (sscanf(domain, "%d.%d.%d.%d", ip + 0, ip + 1, ip + 2, ip + 3) == 4) {
@@ -280,16 +221,6 @@ int allow_domain(const char *domain)
         return 0;
     }
 
-    r = calloc(1, sizeof(struct resolve_task) + strlen(domain) + 1);
-    if (!r) {
-        ULOG_ERR("allow_domain failed: No mem\n");
-        return -1;
-    }
-
-    r->proc.task.type = &resolve_type;
-    r->proc.task.run_timeout = 500;
-    r->proc.task.complete = resolve_complete;
-    strcpy(r->domain, domain);
-    runqueue_task_add(&runq, &r->proc.task, false);
+    resolv_start(domain, my_resolv_cb, NULL, NULL);
     return 0;
 }

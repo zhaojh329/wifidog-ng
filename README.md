@@ -8,6 +8,7 @@
 [libuci]: https://git.openwrt.org/?p=project/uci.git
 [WifiDog]: https://github.com/wifidog/wifidog-gateway
 [pingcheck]: https://github.com/br101/pingcheck
+[c-ares]: https://github.com/c-ares/c-ares
 
 Next generation [WifiDog]
 
@@ -17,7 +18,7 @@ embedded linux(LEDE/Openwrt) system.
 `Keep Watching for More Actions on This Space`
 
 # Features
-* Based on [libubox] - Use epoll
+* Use epoll - Based on [libubox]: Single threaded, Fully asynchronous, No blocking operation at all
 * Writing kernel module to implement authentication management instead of using iptables to create firewall rules
 * Support HTTPS: OpenSSL, mbedtls and CyaSSl(wolfssl)
 
@@ -26,6 +27,7 @@ embedded linux(LEDE/Openwrt) system.
 * [libuhttpd]
 * [libuclient]
 * [libuci]
+* [c-ares]
 * [pingcheck]
 
 # How to use

@@ -17,21 +17,21 @@
  * USA
  */
 
-#ifndef _UTILS_H
-#define _UTILS_H
+#ifndef _RESOLV_H
+#define _RESOLV_H
 
-#include <stdbool.h>
+#include <netdb.h>
 
-int get_iface_ip(const char *ifname, char *dst, int len);
-int get_iface_mac(const char *ifname, char *dst, int len);
-int arp_get(const char *ifname, const char *ip, char *dst, int len);
+struct resolv_query {
+    void (*resolv_cb)(struct hostent *he, void *data);
+    void (*free_cb)(void *);
 
-int allow_destip(const char *ip);
-int allow_domain(const char *domain);
+    void *data;
+};
 
-int urlencode(char *buf, int blen, const char *src, int slen);
-
-int enable_kmod(const char *interface, int port, int ssl_port);
-int disable_kmod();
+int resolv_init();
+void resolv_start(const char *hostname, void (*resolv_cb)(struct hostent *he, void *data),
+                  void (*free_cb)(void *), void *data);
+void resolv_shutdown();
 
 #endif
