@@ -45,7 +45,7 @@ int deny_termianl(const char *mac)
 {
     FILE *fp = fopen("/proc/wifidog/term", "w");
     if (!fp) {
-        ULOG_ERR("fopen:%s\n", strerror(errno));
+        ULOG_ERR("Kernel module is not loaded\n");
         return -1;
     }
 

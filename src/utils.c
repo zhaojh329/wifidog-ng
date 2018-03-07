@@ -156,7 +156,7 @@ int allow_destip(const char *ip)
 {
     FILE *fp = fopen("/proc/wifidog/ip", "w");
     if (!fp) {
-        ULOG_ERR("fopen:%s\n", strerror(errno));
+        ULOG_ERR("Kernel module is not loaded\n");
         return -1;
     }
 
@@ -172,7 +172,7 @@ int enable_kmod(const char *interface, int port, int ssl_port)
 {
     FILE *fp = fopen("/proc/wifidog/config", "w");
     if (!fp) {
-        ULOG_ERR("fopen:%s\n", strerror(errno));
+        ULOG_ERR("Kernel module is not loaded\n");
         return -1;
     }
 
@@ -190,7 +190,7 @@ int disable_kmod()
 {
     FILE *fp = fopen("/proc/wifidog/config", "w");
     if (!fp) {
-        ULOG_ERR("fopen:%s\n", strerror(errno));
+        ULOG_ERR("Kernel module is not loaded\n");
         return -1;
     }
 
