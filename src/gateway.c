@@ -40,7 +40,8 @@ int main(int argc, char **argv)
     resolv_init();
     ubus_init();
     termianl_init();
-    
+    check_internet();
+
     uloop_run();
 
 EXIT:

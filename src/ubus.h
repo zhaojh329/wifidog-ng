@@ -21,5 +21,6 @@
 #define _UBUS_H
 
 int ubus_init();
+void check_internet();
 
 #endif

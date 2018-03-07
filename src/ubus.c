@@ -35,12 +35,21 @@ static const struct blobmsg_policy status_policy[] = {
     [STATUS_INTERNET] = { .name = "internet", .type = BLOBMSG_TYPE_BOOL },
 };
 
+static void inline on_status_internet_online()
+{
+    struct config *conf = get_config();
+
+    start_heartbeat();
+    start_counters();
+    allow_domain(conf->authserver.host);
+    enable_kmod(conf->gw_interface, conf->gw_port, conf->gw_ssl_port);
+}
+
 static int server_status(struct ubus_context *ctx, struct ubus_object *obj,
              struct ubus_request_data *req, const char *method,
              struct blob_attr *msg)
 {
     struct blob_attr *tb[__STATUS_MAX];
-    struct config *conf = get_config();
 
     blobmsg_parse(status_policy, ARRAY_SIZE(status_policy), tb, blob_data(msg), blob_len(msg));
 
@@ -48,10 +57,7 @@ static int server_status(struct ubus_context *ctx, struct ubus_object *obj,
         if (blobmsg_get_bool(tb[STATUS_INTERNET])) {
             ULOG_INFO("Internet became online\n");
 
-            start_heartbeat();
-            start_counters();
-            allow_domain(conf->authserver.host);
-            enable_kmod(conf->gw_interface, conf->gw_port, conf->gw_ssl_port);
+            on_status_internet_online();
         } else {
             ULOG_INFO("Internet became offline\n");
 
@@ -95,4 +101,39 @@ int ubus_init()
         return -1;
     }
     return 0;
+}
+
+
+
+static void check_internet_cb(struct ubus_request *req, int type, struct blob_attr *msg)
+{
+    static const struct blobmsg_policy policy[] = {
+        [STATUS_INTERNET] = { .name = "status", .type = BLOBMSG_TYPE_STRING },
+    };
+    struct blob_attr *tb[__STATUS_MAX];
+
+    blobmsg_parse(policy, __STATUS_MAX, tb, blob_data(msg), blob_len(msg));
+
+    if (!tb[STATUS_INTERNET])
+        return;
+
+    if (!strcmp(blobmsg_get_string(tb[STATUS_INTERNET]), "ONLINE")) {
+        ULOG_INFO("check internet online\n");
+        on_status_internet_online();
+    }
+}
+
+void check_internet()
+{
+    static struct ubus_request req;
+    static struct blob_buf b;
+    uint32_t id;
+
+    if (ubus_lookup_id(ctx, "pingcheck", &id))
+        return;
+
+    blob_buf_init(&b, 0);
+    ubus_invoke_async(ctx, id, "status", b.head, &req);
+    req.data_cb = check_internet_cb;
+    ubus_complete_request_async(ctx, &req);
 }
