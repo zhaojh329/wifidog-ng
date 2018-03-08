@@ -141,6 +141,7 @@ static void http_callback_auth(struct uh_client *cl)
         cl->chunk_printf(cl, "<h1>Invalid token</h1>");
         cl->request_done(cl);
 
+        /* cancel possible temppass */
         deny_termianl(mac);
     }
 }
