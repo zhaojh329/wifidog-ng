@@ -115,23 +115,22 @@ static void http_callback_404(struct uh_client *cl)
 
 static void http_callback_auth(struct uh_client *cl)
 {
-    const char *token = cl->get_var(cl, "token");
     struct config *conf = get_config();
+    const char *token = cl->get_var(cl, "token");
+    const char *remote_addr = cl->get_peer_addr(cl);
+    char mac[18] = "";
+
+    if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
+        cl->send_header(cl, 200, "OK", -1);
+        cl->header_end(cl);
+        cl->chunk_printf(cl, "<h1>Failed to retrieve your MAC address</h1>");
+        cl->request_done(cl);
+        ULOG_ERR("Failed to retrieve MAC address for ip %s\n", remote_addr);
+        return;
+    }
 
     if (token) {
-        const char *remote_addr = cl->get_peer_addr(cl);
         const char *logout = cl->get_var(cl, "logout");
-        char mac[18] = "";
-
-        if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
-            cl->send_header(cl, 200, "OK", -1);
-            cl->header_end(cl);
-            cl->chunk_printf(cl, "<h1>Failed to retrieve your MAC address</h1>");
-            cl->request_done(cl);
-            ULOG_ERR("Failed to retrieve MAC address for ip %s\n", remote_addr);
-            return;
-        }
-
         if (logout)
             authserver_request(cl, "logout", remote_addr, mac, token);
         else
@@ -141,6 +140,8 @@ static void http_callback_auth(struct uh_client *cl)
         cl->header_end(cl);
         cl->chunk_printf(cl, "<h1>Invalid token</h1>");
         cl->request_done(cl);
+
+        deny_termianl(mac);
     }
 }
 
