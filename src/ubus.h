@@ -17,10 +17,9 @@
  * USA
  */
 
-#ifndef _UBUS_H
-#define _UBUS_H
+#ifndef _WIFIDOG_UBUS_H
+#define _WIFIDOG_UBUS_H
 
-int ubus_init();
-void check_internet();
+int wifidog_ubus_init();
 
 #endif

@@ -20,12 +20,13 @@
 #include <libubox/ulog.h>
 #include <uhttpd/uhttpd.h>
 
-#include "config.h"
-#include "termianl.h"
 #include "ubus.h"
 #include "auth.h"
 #include "utils.h"
 #include "resolv.h"
+#include "config.h"
+#include "termianl.h"
+#include "check_internet.h"
 
 int main(int argc, char **argv)
 {
@@ -34,13 +35,14 @@ int main(int argc, char **argv)
     
     uloop_init();
 
+    resolv_init();
+
     if (auth_init() < 0)
         goto EXIT;
-
-    resolv_init();
-    ubus_init();
+    
     termianl_init();
-    check_internet();
+    wifidog_ubus_init();
+    start_check_internet();
 
     uloop_run();
 

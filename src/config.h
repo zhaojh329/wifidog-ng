@@ -20,6 +20,22 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+struct auth_server {
+    int port;
+    const char *host;
+    const char *path;
+    const char *login_path;
+    const char *portal_path;
+    const char *msg_path;
+    const char *ping_path;
+    const char *auth_path;
+};
+
+struct popular_server {
+    char *hostname;
+    struct popular_server *next;
+};
+
 struct config {
     const char *gw_interface;
     const char *gw_address;
@@ -30,16 +46,8 @@ struct config {
     int checkinterval;
     int temppass_time;
 
-    struct {
-        int port;
-        const char *host;
-        const char *path;
-        const char *login_path;
-        const char *portal_path;
-        const char *msg_path;
-        const char *ping_path;
-        const char *auth_path;
-    } authserver;
+    struct auth_server authserver;
+    struct popular_server *popular_servers;
 
     const char *login_url;
     const char *auth_url;

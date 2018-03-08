@@ -17,18 +17,9 @@
  * USA
  */
 
-#ifndef _RESOLV_H
-#define _RESOLV_H
+#ifndef _CHECK_INTERNET_H
+#define _CHECK_INTERNET_H
 
-#include <netdb.h>
-
-struct resolv_query {
-    void (*resolv_cb)(struct hostent *he, void *data);
-    void *data;
-};
-
-int resolv_init();
-void resolv_start(const char *hostname, void (*resolv_cb)(struct hostent *he, void *data), void *data);
-void resolv_shutdown();
+void start_check_internet();
 
 #endif

@@ -221,6 +221,6 @@ int allow_domain(const char *domain)
         return 0;
     }
 
-    resolv_start(domain, my_resolv_cb, NULL, NULL);
+    resolv_start(domain, my_resolv_cb, NULL);
     return 0;
 }

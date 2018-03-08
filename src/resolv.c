@@ -149,29 +149,19 @@ static void dns_query_v4_cb(void *arg, int status, int timeouts, struct hostent 
     if (!he || status != ARES_SUCCESS) {
     	he = NULL;
 		ULOG_ERR("failed to lookup v4 address %s\n", ares_strerror(status));
-        goto CLEANUP;
     }
 
-CLEANUP:
 	query->resolv_cb(he, query->data);
-
-    if (query->free_cb)
-        query->free_cb(query->data);
-    else
-        free(query->data);
-
     free(query);
 }
 
-void resolv_start(const char *hostname, void (*resolv_cb)(struct hostent *he, void *data),
-             void (*free_cb)(void *data), void *data)
+void resolv_start(const char *hostname, void (*resolv_cb)(struct hostent *he, void *data), void *data)
 {
     /* Wrap c-ares's call back in our own */
     struct resolv_query *query = calloc(1, sizeof(struct resolv_query));
 
-    query->resolv_cb      = resolv_cb;
-    query->data           = data;
-    query->free_cb        = free_cb;
+    query->resolv_cb = resolv_cb;
+    query->data = data;
 
     ares_gethostbyname(default_ctx.channel, hostname, AF_INET, dns_query_v4_cb, query);
     reset_timer();
