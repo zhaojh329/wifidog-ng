@@ -72,6 +72,11 @@ Select package wifidog-ng in menuconfig and compile new image.
 | ping_path   | no        | ping            |
 | auth_path   | no        | auth            |
 
+## Section popularserver
+| Name    | Type | Required  | Default                    |
+| ------- | ---- | --------- | -------------------------- |
+| server  | list | no        | `www.baidu.com www.qq.com` |
+
 # Protocol
 ## Gateway heartbeating (Ping Protocol)
 `http://authserver/wifidog/ping?gw_id=xx&sys_uptime=xx&sys_memfree=xx&sys_load=xx&wifidog_uptime=xx`
