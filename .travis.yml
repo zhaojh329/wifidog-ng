@@ -20,6 +20,8 @@ install:
   - pushd uci && cmake . -DBUILD_LUA=0 && sudo make install && popd
   - git clone https://git.openwrt.org/project/uclient.git
   - pushd uclient && cmake . && sudo make install && popd
+  - git clone https://git.openwrt.org/project/ubus.git
+  - pushd ubus && cmake . -DBUILD_LUA=0 && sudo make install && popd
   - git clone https://github.com/zhaojh329/libuhttpd.git
   - pushd libuhttpd && cmake . && sudo make install && popd
 
