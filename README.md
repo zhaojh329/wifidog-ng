@@ -1,6 +1,18 @@
 # WifiDog-ng
 
-![](https://img.shields.io/badge/license-LGPL2-brightgreen.svg?style=plastic "License")
+[1]: https://img.shields.io/badge/license-LGPL2-brightgreen.svg?style=plastic
+[2]: /LICENSE
+[3]: https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=plastic
+[4]: https://github.com/zhaojh329/wifidog-ng/pulls
+[5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
+[6]: https://github.com/zhaojh329/wifidog-ng/issues/new
+[9]: https://travis-ci.org/zhaojh329/wifidog-ng.svg?branch=master
+[10]: https://travis-ci.org/zhaojh329/wifidog-ng
+
+[![license][1]][2]
+[![PRs Welcome][3]][4]
+[![Issue Welcome][5]][6]
+[![Build Status][9]][10]
 
 [libuhttpd]: https://github.com/zhaojh329/libuhttpd
 [libubox]: https://git.openwrt.org/?p=project/libubox.git
