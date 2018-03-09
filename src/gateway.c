@@ -17,6 +17,9 @@
  * USA
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <libubox/ulog.h>
 #include <uhttpd/uhttpd.h>
 
@@ -29,8 +32,32 @@
 #include "termianl.h"
 #include "check_internet.h"
 
+static void usage(const char *prog)
+{
+    fprintf(stderr, "Usage: %s [option]\n"
+        "      -v           # verbose\n"
+        , prog);
+    exit(1);
+}
+
 int main(int argc, char **argv)
 {
+    int opt;
+    bool verbose = false;
+
+    while ((opt = getopt(argc, argv, "v")) != -1) {
+        switch (opt) {
+        case 'v':
+            verbose = true;
+            break;
+        default: /* '?' */
+            usage(argv[0]);
+        }
+    }
+
+    if (!verbose)
+        ulog_threshold(LOG_ERR);
+
     ULOG_INFO("wifidog-ng version %s\n", WIFIDOG_NG_VERSION_STRING);
 
     if (parse_config())
