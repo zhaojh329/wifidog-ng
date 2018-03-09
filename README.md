@@ -6,12 +6,15 @@
 [4]: https://github.com/zhaojh329/wifidog-ng/pulls
 [5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
 [6]: https://github.com/zhaojh329/wifidog-ng/issues/new
+[7]: https://img.shields.io/badge/release-1.0.0-blue.svg?style=plastic
+[8]: https://github.com/zhaojh329/wifidog-ng/releases
 [9]: https://travis-ci.org/zhaojh329/wifidog-ng.svg?branch=master
 [10]: https://travis-ci.org/zhaojh329/wifidog-ng
 
 [![license][1]][2]
 [![PRs Welcome][3]][4]
 [![Issue Welcome][5]][6]
+[![Release Version][7]][8]
 [![Build Status][9]][10]
 
 [libuhttpd]: https://github.com/zhaojh329/libuhttpd

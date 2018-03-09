@@ -17,42 +17,12 @@
  * USA
  */
 
-#include <libubox/ulog.h>
-#include <uhttpd/uhttpd.h>
+#ifndef _WIFIDOG_NG_VERSION_H
+#define _WIFIDOG_NG_VERSION_H
 
-#include "version.h"
-#include "ubus.h"
-#include "auth.h"
-#include "utils.h"
-#include "resolv.h"
-#include "config.h"
-#include "termianl.h"
-#include "check_internet.h"
+#define WIFIDOG_NG_VERSION_MAJOR @WIFIDOG_NG_VERSION_MAJOR@
+#define WIFIDOG_NG_VERSION_MINOR @WIFIDOG_NG_VERSION_MINOR@
+#define WIFIDOG_NG_VERSION_PATCH @WIFIDOG_NG_VERSION_PATCH@
+#define WIFIDOG_NG_VERSION_STRING "@WIFIDOG_NG_VERSION_MAJOR@.@WIFIDOG_NG_VERSION_MINOR@.@WIFIDOG_NG_VERSION_PATCH@"
 
-int main(int argc, char **argv)
-{
-    ULOG_INFO("wifidog-ng version %s\n", WIFIDOG_NG_VERSION_STRING);
-
-    if (parse_config())
-        return -1;
-    
-    uloop_init();
-
-    resolv_init();
-
-    if (auth_init() < 0)
-        goto EXIT;
-    
-    termianl_init();
-    wifidog_ubus_init();
-    start_check_internet();
-
-    uloop_run();
-
-EXIT:
-    resolv_shutdown();
-    uloop_done();
-    ULOG_INFO("wifidog-ng exit.\n");
-    
-    return 0;
-}
+#endif
