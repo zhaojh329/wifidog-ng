@@ -90,7 +90,7 @@ int get_iface_mac(const char *ifname, char *dst, int len)
 
 int arp_get(const char *ifname, const char *ip, char *dst, int len)
 {
-	struct arpreq req;  
+    struct arpreq req;  
     struct sockaddr_in *sin;  
     int sock = 0;
     uint8_t *hw;

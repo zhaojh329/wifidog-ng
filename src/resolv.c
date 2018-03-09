@@ -41,7 +41,7 @@ static struct resolv_ctx default_ctx;
 
 static void reset_timer()
 {
-	float repeat;
+    float repeat;
     struct timeval tvout;
     struct timeval *tv;
 
@@ -100,7 +100,7 @@ static void resolv_timeout_cb(struct uloop_timeout *ut)
 
 int resolv_init()
 {
-	int status;
+    int status;
 
     if ((status = ares_library_init(ARES_LIB_INIT_ALL)) != ARES_SUCCESS) {
         ULOG_ERR("c-ares error: %s\n", ares_strerror(status));
@@ -147,11 +147,11 @@ static void dns_query_v4_cb(void *arg, int status, int timeouts, struct hostent 
         return;
 
     if (!he || status != ARES_SUCCESS) {
-    	he = NULL;
-		ULOG_ERR("failed to lookup v4 address %s\n", ares_strerror(status));
+        he = NULL;
+        ULOG_ERR("failed to lookup v4 address %s\n", ares_strerror(status));
     }
 
-	query->resolv_cb(he, query->data);
+    query->resolv_cb(he, query->data);
     free(query);
 }
 

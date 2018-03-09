@@ -44,32 +44,32 @@ static struct config conf = {
 
 enum {
     GATEWAY_ATTR_ENABLED,
-	GATEWAY_ATTR_IFNAME,
+    GATEWAY_ATTR_IFNAME,
     GATEWAY_ATTR_ADDRESS,
     GATEWAY_ATTR_ID,
     GATEWAY_ATTR_SSID,
-	GATEWAY_ATTR_PORT,
-	GATEWAY_ATTR_SSL_PORT,
-	GATEWAY_ATTR_CHECKINTERVAL,
+    GATEWAY_ATTR_PORT,
+    GATEWAY_ATTR_SSL_PORT,
+    GATEWAY_ATTR_CHECKINTERVAL,
     GATEWAY_ATTR_TEMPPASS_TIME,
-	GATEWAY_ATTR_MAX
+    GATEWAY_ATTR_MAX
 };
 
 static const struct blobmsg_policy gateway_attrs[GATEWAY_ATTR_MAX] = {
     [GATEWAY_ATTR_ENABLED] = { .name = "enabled", .type = BLOBMSG_TYPE_BOOL },
-	[GATEWAY_ATTR_IFNAME] = { .name = "ifname", .type = BLOBMSG_TYPE_STRING },
+    [GATEWAY_ATTR_IFNAME] = { .name = "ifname", .type = BLOBMSG_TYPE_STRING },
     [GATEWAY_ATTR_ADDRESS] = { .name = "address", .type = BLOBMSG_TYPE_STRING },
     [GATEWAY_ATTR_ID] = { .name = "id", .type = BLOBMSG_TYPE_STRING },
     [GATEWAY_ATTR_SSID] = { .name = "ssid", .type = BLOBMSG_TYPE_STRING },
-	[GATEWAY_ATTR_PORT] = { .name = "port", .type = BLOBMSG_TYPE_INT32 },
-	[GATEWAY_ATTR_SSL_PORT] = { .name = "ssl_port", .type = BLOBMSG_TYPE_INT32 },
-	[GATEWAY_ATTR_CHECKINTERVAL] = { .name = "checkinterval", .type = BLOBMSG_TYPE_INT32 },
+    [GATEWAY_ATTR_PORT] = { .name = "port", .type = BLOBMSG_TYPE_INT32 },
+    [GATEWAY_ATTR_SSL_PORT] = { .name = "ssl_port", .type = BLOBMSG_TYPE_INT32 },
+    [GATEWAY_ATTR_CHECKINTERVAL] = { .name = "checkinterval", .type = BLOBMSG_TYPE_INT32 },
     [GATEWAY_ATTR_TEMPPASS_TIME] = { .name = "temppass_time", .type = BLOBMSG_TYPE_INT32 }
 };
 
 static const struct uci_blob_param_list gateway_attr_list = {
-	.n_params = GATEWAY_ATTR_MAX,
-	.params = gateway_attrs,
+    .n_params = GATEWAY_ATTR_MAX,
+    .params = gateway_attrs,
 };
 
 static void parse_gateway(struct uci_section *s)
@@ -116,30 +116,30 @@ static void parse_gateway(struct uci_section *s)
 
 enum {
     AUTHSERVER_ATTR_HOST,
-	AUTHSERVER_ATTR_PORT,
-	AUTHSERVER_ATTR_PATH,
-	AUTHSERVER_ATTR_LOGIN_PATH,
-	AUTHSERVER_ATTR_PORTAL_PATH,
-	AUTHSERVER_ATTR_MSG_PATH,
-	AUTHSERVER_ATTR_PING_PATH,
-	AUTHSERVER_ATTR_AUTH_PATH,
-	AUTHSERVER_ATTR_MAX
+    AUTHSERVER_ATTR_PORT,
+    AUTHSERVER_ATTR_PATH,
+    AUTHSERVER_ATTR_LOGIN_PATH,
+    AUTHSERVER_ATTR_PORTAL_PATH,
+    AUTHSERVER_ATTR_MSG_PATH,
+    AUTHSERVER_ATTR_PING_PATH,
+    AUTHSERVER_ATTR_AUTH_PATH,
+    AUTHSERVER_ATTR_MAX
 };
 
 static const struct blobmsg_policy authserver_attrs[AUTHSERVER_ATTR_MAX] = {
-	[AUTHSERVER_ATTR_HOST] = { .name = "host", .type = BLOBMSG_TYPE_STRING },
-	[AUTHSERVER_ATTR_PORT] = { .name = "port", .type = BLOBMSG_TYPE_INT32 },
-	[AUTHSERVER_ATTR_PATH] = { .name = "path", .type = BLOBMSG_TYPE_STRING },
-	[AUTHSERVER_ATTR_LOGIN_PATH] = { .name = "login_path", .type = BLOBMSG_TYPE_STRING },
-	[AUTHSERVER_ATTR_PORTAL_PATH] = { .name = "portal_path", .type = BLOBMSG_TYPE_STRING },
-	[AUTHSERVER_ATTR_MSG_PATH] = { .name = "msg_path", .type = BLOBMSG_TYPE_STRING },
-	[AUTHSERVER_ATTR_PING_PATH] = { .name = "ping_path", .type = BLOBMSG_TYPE_STRING },
-	[AUTHSERVER_ATTR_AUTH_PATH] = { .name = "auth_path", .type = BLOBMSG_TYPE_STRING },
+    [AUTHSERVER_ATTR_HOST] = { .name = "host", .type = BLOBMSG_TYPE_STRING },
+    [AUTHSERVER_ATTR_PORT] = { .name = "port", .type = BLOBMSG_TYPE_INT32 },
+    [AUTHSERVER_ATTR_PATH] = { .name = "path", .type = BLOBMSG_TYPE_STRING },
+    [AUTHSERVER_ATTR_LOGIN_PATH] = { .name = "login_path", .type = BLOBMSG_TYPE_STRING },
+    [AUTHSERVER_ATTR_PORTAL_PATH] = { .name = "portal_path", .type = BLOBMSG_TYPE_STRING },
+    [AUTHSERVER_ATTR_MSG_PATH] = { .name = "msg_path", .type = BLOBMSG_TYPE_STRING },
+    [AUTHSERVER_ATTR_PING_PATH] = { .name = "ping_path", .type = BLOBMSG_TYPE_STRING },
+    [AUTHSERVER_ATTR_AUTH_PATH] = { .name = "auth_path", .type = BLOBMSG_TYPE_STRING },
 };
 
 const struct uci_blob_param_list authserver_attr_list = {
-	.n_params = AUTHSERVER_ATTR_MAX,
-	.params = authserver_attrs,
+    .n_params = AUTHSERVER_ATTR_MAX,
+    .params = authserver_attrs,
 };
 
 static void parse_authserver(struct uci_section *s)
@@ -326,4 +326,3 @@ struct config *get_config()
 {
     return &conf;
 }
-

@@ -24,4 +24,3 @@ void start_heartbeat();
 void stop_heartbeat();
 
 #endif
-

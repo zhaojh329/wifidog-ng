@@ -31,4 +31,3 @@ int httppost(http_cb cb, void *data, const char *post_data, const char *url, ...
 #define httpget(cb, data, url...) httppost(cb, data, NULL, url)
 
 #endif
-

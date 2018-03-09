@@ -38,7 +38,7 @@ static struct avl_tree temppass_tree;
 
 void termianl_init()
 {
-	avl_init(&temppass_tree, avl_strcmp, false, NULL);
+    avl_init(&temppass_tree, avl_strcmp, false, NULL);
 }
 
 int deny_termianl(const char *mac)
