@@ -236,8 +236,8 @@ int parse_config()
     char buf[128];
     struct auth_server *authserver = &conf.authserver;
     
-    if (uci_load(ctx, "wifidog", &p) || !p) {
-        ULOG_ERR("Load config wifidog failed\n");
+    if (uci_load(ctx, "wifidog-ng", &p) || !p) {
+        ULOG_ERR("Load uci config 'wifidog-ng' failed\n");
         uci_free_context(ctx);
         return -1;
     }

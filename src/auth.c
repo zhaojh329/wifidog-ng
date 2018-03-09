@@ -181,7 +181,7 @@ static int http_init(int port, bool ssl)
     ULOG_INFO("Listen on: *:%d\n", port);
 
 #if (UHTTPD_SSL_SUPPORT)
-    if (ssl && srv->ssl_init(srv, "/etc/wifidog/wifidog.key", "/etc/wifidog/wifidog.crt"))
+    if (ssl && srv->ssl_init(srv, "/etc/wifidog-ng/wifidog-ng.key", "/etc/wifidog-ng/wifidog-ng.crt"))
         goto err;
 #endif
 
