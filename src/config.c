@@ -43,6 +43,7 @@ static struct config conf = {
 };
 
 enum {
+    GATEWAY_ATTR_ENABLED,
 	GATEWAY_ATTR_IFNAME,
     GATEWAY_ATTR_ADDRESS,
     GATEWAY_ATTR_ID,
@@ -55,6 +56,7 @@ enum {
 };
 
 static const struct blobmsg_policy gateway_attrs[GATEWAY_ATTR_MAX] = {
+    [GATEWAY_ATTR_ENABLED] = { .name = "enabled", .type = BLOBMSG_TYPE_BOOL },
 	[GATEWAY_ATTR_IFNAME] = { .name = "ifname", .type = BLOBMSG_TYPE_STRING },
     [GATEWAY_ATTR_ADDRESS] = { .name = "address", .type = BLOBMSG_TYPE_STRING },
     [GATEWAY_ATTR_ID] = { .name = "id", .type = BLOBMSG_TYPE_STRING },
@@ -78,6 +80,11 @@ static void parse_gateway(struct uci_section *s)
 
     uci_to_blob(&b, s, &gateway_attr_list);
     blobmsg_parse(gateway_attrs, GATEWAY_ATTR_MAX, tb, blob_data(b.head), blob_len(b.head));
+
+    if (tb[GATEWAY_ATTR_ENABLED] && !blobmsg_get_bool(tb[GATEWAY_ATTR_ENABLED])) {
+        ULOG_INFO("wifidog-ng not enabled\n");
+        exit(0);
+    }
 
     if (tb[GATEWAY_ATTR_IFNAME])
         conf.gw_interface = strdup(blobmsg_data(tb[GATEWAY_ATTR_IFNAME]));
