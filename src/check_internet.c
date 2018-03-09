@@ -60,7 +60,7 @@ static void check_internet_available_cb(struct hostent *he, void *data)
             stop_counters();
             disable_kmod();
 
-            ULOG_INFO("Internet not available too loong\n");
+            ULOG_INFO("Internet not available too long\n");
         }
     }
 }
