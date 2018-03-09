@@ -191,9 +191,12 @@ static int http_init(int port, bool ssl)
     uh_add_action(srv, "/wifidog/temppass", http_callback_temppass);
 
     return 0;
+
+#if (UHTTPD_SSL_SUPPORT)
 err:
      srv->free(srv);
      return -1;
+#endif
 }
 
 int auth_init()
