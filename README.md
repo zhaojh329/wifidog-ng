@@ -32,6 +32,7 @@ embedded linux(LEDE/Openwrt) system.
 * Use epoll - Based on [libubox]: Single threaded, Fully asynchronous, No blocking operation at all
 * Writing kernel module to implement authentication management instead of using iptables to create firewall rules
 * Support HTTPS: OpenSSL, mbedtls and CyaSSl(wolfssl)
+* Code structure is concise and understandable
 
 # Dependencies
 * [libubox]
