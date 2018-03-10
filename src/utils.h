@@ -20,6 +20,7 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
+#include <stdint.h>
 #include <stdbool.h>
 
 int get_iface_ip(const char *ifname, char *dst, int len);
@@ -33,5 +34,10 @@ int urlencode(char *buf, int blen, const char *src, int slen);
 
 int enable_kmod(const char *interface, int port, int ssl_port);
 int disable_kmod();
+
+uint16_t rand16();
+
+int get_icmp_socket();
+void icmp_ping(int sock, const char *ipaddr);
 
 #endif

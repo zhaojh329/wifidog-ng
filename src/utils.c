@@ -24,10 +24,13 @@
 #include <unistd.h>
 #include <errno.h>
 #include <ctype.h>
+#include <stdint.h>
+#include <sys/time.h>
 #include <net/if_arp.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <libubox/ulog.h>
+#include <netinet/ip_icmp.h>
 
 #include "resolv.h"
 
@@ -223,4 +226,64 @@ int allow_domain(const char *domain)
 
     resolv_start(domain, my_resolv_cb, NULL);
     return 0;
+}
+
+
+/* Get a 16-bit unsigned random number. */
+uint16_t rand16()
+{
+    static int been_seeded = 0;
+
+    if (!been_seeded) {
+        uint32_t seed = 0;
+        struct timeval now;
+
+        /* not a very good seed but what the heck, it needs to be quickly acquired */
+        gettimeofday(&now, NULL);
+        seed = now.tv_sec ^ now.tv_usec ^ (getpid() << 16);
+
+        srand(seed);
+        been_seeded = 1;
+    }
+
+    /* Some rand() implementations have less randomness in low bits
+     * than in high bits, so we only pay attention to the high ones.
+     * But most implementations don't touch the high bit, so we
+     * ignore that one. */
+    return ((uint16_t)(rand() >> 15));
+}
+
+/*
+ * note, to allow root to use icmp sockets, run:
+ * sysctl -w net.ipv4.ping_group_range="0 0"
+ */
+int get_icmp_socket()
+{
+    int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
+    if (sock < 0) {
+        ULOG_ERR("get_icmp_socket error: %s\n", strerror(errno));
+        return -1;
+    }
+
+    return sock;
+}
+
+/* Ping an IP. */
+void icmp_ping(int sock, const char *ipaddr)
+{
+    struct sockaddr_in addr;
+    struct icmphdr hdr = {
+        .type = ICMP_ECHO
+    };
+
+    memset(&addr, 0, sizeof addr);
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(ipaddr);
+
+    hdr.un.echo.id = rand16();
+
+    if (sendto(sock, &hdr, sizeof(hdr), 0, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        ULOG_ERR("icmp_ping sendto(): %s\n", strerror(errno));
+        return;
+    }
 }
