@@ -105,7 +105,6 @@ static void http_callback_404(struct uh_client *cl)
     snprintf(tmpurl, (sizeof(tmpurl) - 1), "http://%s%s", cl->get_header(cl, "host"), cl->get_url(cl));
     urlencode(url, sizeof(url), tmpurl, strlen(tmpurl));
 
-
     cl->send_header(cl, 200, "OK", -1);
     cl->header_end(cl);
     cl->chunk_printf(cl, redirect_html, conf->login_url, remote_addr, mac, url);
