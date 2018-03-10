@@ -20,7 +20,6 @@
 #include <libubox/ulog.h>
 #include <libubus.h>
 #include "utils.h"
-#include "ping.h"
 #include "config.h"
 #include "counters.h"
 

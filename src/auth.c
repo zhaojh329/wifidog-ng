@@ -21,7 +21,6 @@
 
 #include "auth.h"
 #include "utils.h"
-#include "ping.h"
 #include "config.h"
 #include "http.h"
 #include "termianl.h"
