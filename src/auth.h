@@ -21,5 +21,6 @@
 #define _AUTH_H
 
 int auth_init();
+void authserver_request(void *data, const char *type, const char *ip, const char *mac, const char *token);
 
 #endif

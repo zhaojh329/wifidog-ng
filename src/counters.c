@@ -23,6 +23,7 @@
 #include <libubox/utils.h>
 #include <libubox/blobmsg_json.h>
 
+#include "auth.h"
 #include "http.h"
 #include "auth.h"
 #include "utils.h"
@@ -99,7 +100,8 @@ static void counters(struct uloop_timeout *t)
     FILE *fp = NULL;
     char buf[1024], *p, *mac, *ip, *rx, *tx, *authed, *token;
     struct config *conf = get_config();
-    int icmp_sock = get_icmp_socket();
+    time_t current_time = time(NULL);
+    struct termianl *term;
     struct blob_buf b;
     void *tbl, *array;
 
@@ -140,6 +142,22 @@ static void counters(struct uloop_timeout *t)
         if (p)
             *p = 0;
 
+        term = find_element(mac);
+        if (!term)
+            continue;
+
+        if (term->last_rx != atoll(rx) || term->last_tx != atoll(tx))
+            term->last_update = time(NULL);
+
+        if (term->last_update + (conf->checkinterval * conf->clienttimeout) <= current_time) {
+            authserver_request(NULL, "logout", ip, mac, token);
+            deny_termianl(mac);
+            continue;
+        }
+
+        term->last_rx = atoll(rx);
+        term->last_tx = atoll(tx);
+
         tbl = blobmsg_open_table(&b, "");
         blobmsg_add_string(&b, "ip", ip);
         blobmsg_add_string(&b, "mac", mac);
@@ -147,12 +165,7 @@ static void counters(struct uloop_timeout *t)
         blobmsg_add_u64(&b, "incoming", atoll(rx));
         blobmsg_add_u64(&b, "outgoing", atoll(tx));
         blobmsg_close_table(&b, tbl);
-
-        icmp_ping(icmp_sock, ip);
     }
-
-    if (icmp_sock > 0)
-        close(icmp_sock);
 
     blobmsg_close_table(&b, array);
     p = blobmsg_format_json(b.head, true);

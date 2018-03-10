@@ -21,9 +21,24 @@
 #define _TEMPPASS_H
 
 #include <stdbool.h>
+#include <netinet/in.h>
+#include <libubox/avl.h>
+#include <libubox/uloop.h>
+
+struct termianl {
+	bool authed;
+	char token[32];
+	char mac[18];
+	uint64_t last_rx;
+	uint64_t last_tx;
+	time_t last_update;
+	struct avl_node node;
+	struct uloop_timeout timer;
+};
 
 void termianl_init();
 int allow_termianl(const char *mac, const char *token, bool temporary);
 int deny_termianl(const char *mac);
+struct termianl *find_element(const  char *mac);
 
 #endif

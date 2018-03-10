@@ -40,6 +40,9 @@ static void authserver_request_cb(void *data, char *content)
     char mac[18] = "";
     int code = -1;
     
+    if (!param) /* For logout */
+        return;
+
     if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
         ULOG_ERR("arp_get failed for %s\n", remote_addr);
         cl->request_done(cl);
@@ -55,11 +58,10 @@ static void authserver_request_cb(void *data, char *content)
 
     if (code == 1) {
         allow_termianl(mac, param->token, false);
-        
         cl->redirect(cl, 302, conf->portal_url);
         free(param);
         return;
-    } else if (param->login) {
+    } else {
         cl->redirect(cl, 302, conf->msg_url);
         free(param);
         return;
@@ -70,14 +72,16 @@ deny:
     free(param);
 }
 
-static void authserver_request(struct uh_client *cl, const char *type, const char *ip, const char *mac, const char *token)
+void authserver_request(void *data, const char *type, const char *ip, const char *mac, const char *token)
 {
     struct config *conf = get_config();
-    struct authserver_request_param *param = calloc(1, sizeof(struct authserver_request_param));
+    struct authserver_request_param *param = NULL;
 
-    param->cl = cl;
-    param->login = !strcmp(type, "login");
-    strcpy(param->token, token);
+    if (!strcmp(type, "login")) {
+        param = calloc(1, sizeof(struct authserver_request_param));
+        strcpy(param->token, token);
+        param->cl = data;
+    }
 
     httpget(authserver_request_cb, param, "%s&stage=%s&ip=%s&mac=%s&token=%s", conf->auth_url, type, ip, mac, token);
 }

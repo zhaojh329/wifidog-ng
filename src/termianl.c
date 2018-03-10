@@ -21,29 +21,26 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <libubox/uloop.h>
 #include <libubox/ulog.h>
 #include <libubox/avl-cmp.h>
-#include <libubox/avl.h>
+
 #include "utils.h"
 #include "config.h"
+#include "termianl.h"
 
-struct termianl_temppass {
-    char mac[18];
-    struct avl_node node;
-    struct uloop_timeout timer;
-};
-
-static struct avl_tree temppass_tree;
+static struct avl_tree term_tree;
 
 void termianl_init()
 {
-    avl_init(&temppass_tree, avl_strcmp, false, NULL);
+    avl_init(&term_tree, avl_strcmp, false, NULL);
 }
 
 int deny_termianl(const char *mac)
 {
-    FILE *fp = fopen("/proc/wifidog/term", "w");
+    struct termianl *term;
+    FILE *fp;
+
+    fp = fopen("/proc/wifidog/term", "w");
     if (!fp) {
         ULOG_ERR("Kernel module is not loaded\n");
         return -1;
@@ -52,25 +49,30 @@ int deny_termianl(const char *mac)
     fprintf(fp, "-%s\n", mac);
     fclose(fp);
 
+    term = avl_find_element(&term_tree, mac, term, node);
+    if (term) {
+        avl_delete(&term_tree, &term->node);
+        free(term);
+    }
+
     ULOG_INFO("deny termianl: %s\n", mac);
     return 0;
 }
 
 static void temppass_timer_cb(struct uloop_timeout *t)
 {
-    struct termianl_temppass *termianl = container_of(t, struct termianl_temppass, timer);
+    struct termianl *term = container_of(t, struct termianl, timer);
 
-    deny_termianl(termianl->mac);
-    avl_delete(&temppass_tree, &termianl->node);
-    free(termianl);
+    deny_termianl(term->mac);
 }
 
 int allow_termianl(const char *mac, const char *token, bool temporary)
 {
-    struct termianl_temppass *termianl;
+    struct termianl *term;
     struct config *conf = get_config();
+    FILE *fp;
 
-    FILE *fp = fopen("/proc/wifidog/term", "w");
+    fp = fopen("/proc/wifidog/term", "w");
     if (!fp) {
         ULOG_ERR("fopen:%s\n", strerror(errno));
         return -1;
@@ -81,26 +83,33 @@ int allow_termianl(const char *mac, const char *token, bool temporary)
 
     ULOG_INFO("allow termianl %s: %s\n", temporary ? "temporary" : "", mac);
 
-    termianl = avl_find_element(&temppass_tree, mac, termianl, node);
-    if (termianl) {
-        if (temporary) {
-            uloop_timeout_set(&termianl->timer, conf->temppass_time * 1000);
-            return 0;
-        }
-        uloop_timeout_cancel(&termianl->timer);
-        avl_delete(&temppass_tree, &termianl->node);
-        free(termianl);
-    } else if (temporary) {
-        termianl = calloc(1, sizeof(struct termianl_temppass));
-        if (!termianl) {
-            ULOG_ERR("allow_termianl temporary FAILED: No mem\n");
+    term = avl_find_element(&term_tree, mac, term, node);
+    if (!term) {
+        term = calloc(1, sizeof(struct termianl));
+        if (!term) {
+            ULOG_ERR("allow_termianl calloc FAILED: No mem\n");
             return -1;
         }
 
-        termianl->node.key = strcpy(termianl->mac, mac);
-        termianl->timer.cb = temppass_timer_cb;
-        uloop_timeout_set(&termianl->timer, conf->temppass_time * 1000);
-        avl_insert(&temppass_tree, &termianl->node);
+        term->node.key = strcpy(term->mac, mac);
+        term->timer.cb = temppass_timer_cb;
+        avl_insert(&term_tree, &term->node);
+    }
+
+    if (temporary) {
+        uloop_timeout_set(&term->timer, conf->temppass_time * 1000);
+    } else {
+        uloop_timeout_cancel(&term->timer);
+
+        if (token)
+            strncpy(term->token, token, sizeof(term->token) - 1);
     }
     return 0;
+}
+
+struct termianl *find_element(const  char *mac)
+{
+    struct termianl *term;
+
+    return avl_find_element(&term_tree, mac, term, node);
 }
