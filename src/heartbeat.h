@@ -17,8 +17,8 @@
  * USA
  */
 
-#ifndef _PING_H
-#define _PING_H
+#ifndef _HEARTBEAT_H
+#define _HEARTBEAT_H
 
 void start_heartbeat();
 void stop_heartbeat();

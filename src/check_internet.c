@@ -20,7 +20,7 @@
 #include <libubox/ulog.h>
 #include <libubox/uloop.h>
 
-#include "ping.h"
+#include "heartbeat.h"
 #include "utils.h"
 #include "config.h"
 #include "resolv.h"
