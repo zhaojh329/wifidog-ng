@@ -24,8 +24,9 @@
 #include <libubox/blobmsg_json.h>
 
 #include "http.h"
-#include "config.h"
 #include "auth.h"
+#include "utils.h"
+#include "config.h"
 #include "termianl.h"
 
 enum {
@@ -98,6 +99,7 @@ static void counters(struct uloop_timeout *t)
     FILE *fp = NULL;
     char buf[1024], *p, *mac, *ip, *rx, *tx, *authed, *token;
     struct config *conf = get_config();
+    int icmp_sock = get_icmp_socket();
     struct blob_buf b;
     void *tbl, *array;
 
@@ -145,7 +147,12 @@ static void counters(struct uloop_timeout *t)
         blobmsg_add_u64(&b, "incoming", atoll(rx));
         blobmsg_add_u64(&b, "outgoing", atoll(tx));
         blobmsg_close_table(&b, tbl);
+
+        icmp_ping(icmp_sock, ip);
     }
+
+    if (icmp_sock > 0)
+        close(icmp_sock);
 
     blobmsg_close_table(&b, array);
     p = blobmsg_format_json(b.head, true);

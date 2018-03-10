@@ -276,6 +276,9 @@ void icmp_ping(int sock, const char *ipaddr)
         .type = ICMP_ECHO
     };
 
+    if (sock < 0)
+        return;
+
     memset(&addr, 0, sizeof addr);
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = inet_addr(ipaddr);
