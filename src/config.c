@@ -239,7 +239,7 @@ int parse_config()
     struct uci_context *ctx = uci_alloc_context();
     struct uci_package *p = NULL;
     struct uci_element *e;
-    char buf[128];
+    char buf[128], port[10] = "";
     struct auth_server *authserver = &conf.authserver;
     
     if (uci_load(ctx, "wifidog-ng", &p) || !p) {
@@ -278,49 +278,29 @@ int parse_config()
         conf.gw_address = strdup(buf);
     }
     
-    if (authserver->port == 80) {
-        if (!asprintf((char **)&conf.login_url, "http://%s%s%s?gw_address=%s&gw_port=%d&gw_id=%s&ssid=%s",
-            authserver->host, authserver->path, authserver->login_path,
-            conf.gw_address, conf.gw_port, conf.gw_id, conf.ssid ? conf.ssid : ""))
-            goto err;
+    if (authserver->port != 80)
+        sprintf(port, ":%d", authserver->port);
 
-        if (!asprintf((char **)&conf.auth_url, "http://%s%s%s?gw_id=%s",
-            authserver->host, authserver->path, authserver->auth_path, conf.gw_id))
-            goto err;
+    if (!asprintf((char **)&conf.login_url, "http://%s%s%s%s?gw_address=%s&gw_port=%d&gw_id=%s&ssid=%s",
+        authserver->host, port, authserver->path, authserver->login_path,
+        conf.gw_address, conf.gw_port, conf.gw_id, conf.ssid ? conf.ssid : ""))
+        goto err;
 
-        if (!asprintf((char **)&conf.ping_url, "http://%s%s%s?gw_id=%s",
-            authserver->host, authserver->path, authserver->ping_path, conf.gw_id))
-            goto err;
+    if (!asprintf((char **)&conf.auth_url, "http://%s%s%s%s?gw_id=%s",
+        authserver->host, port, authserver->path, authserver->auth_path, conf.gw_id))
+        goto err;
 
-        if (!asprintf((char **)&conf.portal_url, "http://%s%s%s?gw_id=%s",
-            authserver->host, authserver->path, authserver->portal_path, conf.gw_id))
-            goto err;
+    if (!asprintf((char **)&conf.ping_url, "http://%s%s%s%s?gw_id=%s",
+        authserver->host, port, authserver->path, authserver->ping_path, conf.gw_id))
+        goto err;
 
-        if (!asprintf((char **)&conf.msg_url, "http://%s%s%s?gw_id=%s",
-            authserver->host, authserver->path, authserver->msg_path, conf.gw_id))
-            goto err;
-    } else {
-        if (!asprintf((char **)&conf.login_url, "http://%s:%d%s%s?gw_address=%s&gw_port=%d&gw_id=%s&ssid=%s",
-            authserver->host, authserver->port, authserver->path, authserver->login_path,
-            conf.gw_address, conf.gw_port, conf.gw_id, conf.ssid ? conf.ssid : ""))
-            goto err;
+    if (!asprintf((char **)&conf.portal_url, "http://%s%s%s%s?gw_id=%s",
+        authserver->host, port, authserver->path, authserver->portal_path, conf.gw_id))
+        goto err;
 
-        if (!asprintf((char **)&conf.auth_url, "http://%s:%d%s%s?gw_id=%s",
-            authserver->host, authserver->port, authserver->path, authserver->auth_path, conf.gw_id))
-            goto err;
-
-        if (!asprintf((char **)&conf.ping_url, "http://%s:%d%s%s?gw_id=%s",
-            authserver->host, authserver->port, authserver->path, authserver->ping_path, conf.gw_id))
-            goto err;
-
-        if (!asprintf((char **)&conf.portal_url, "http://%s:%d%s%s?gw_id=%s",
-            authserver->host, authserver->port, authserver->path, authserver->portal_path, conf.gw_id))
-            goto err;
-
-        if (!asprintf((char **)&conf.msg_url, "http://%s:%d%s%s?gw_id=%s",
-            authserver->host, authserver->port, authserver->path, authserver->msg_path, conf.gw_id))
-            goto err;
-    }
+    if (!asprintf((char **)&conf.msg_url, "http://%s%s%s%s?gw_id=%s",
+        authserver->host, port, authserver->path, authserver->msg_path, conf.gw_id))
+        goto err;
 
     return 0;
 err:
