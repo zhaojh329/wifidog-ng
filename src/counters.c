@@ -29,63 +29,67 @@
 #include "termianl.h"
 
 enum {
-    COUNTERS_RESP
+    COUNTERS_RESP,
+    _COUNTERS_MAX
 };
 
-static const struct blobmsg_policy pol[] = {
+static const struct blobmsg_policy counters_pol[] = {
     [COUNTERS_RESP] = {
         .name = "resp",
         .type = BLOBMSG_TYPE_ARRAY
     }
 };
 
+enum {
+    COUNTERS_RESP_MAC,
+    COUNTERS_RESP_AUTH,
+    _COUNTERS_RESP_MAX
+};
+
+static const struct blobmsg_policy resp_pol[] = {
+   [COUNTERS_RESP_MAC] = {
+       .name = "mac",
+       .type = BLOBMSG_TYPE_STRING
+   },
+   [COUNTERS_RESP_AUTH] = {
+       .name = "auth",
+       .type = BLOBMSG_TYPE_INT32
+   }
+};
+
 static void counters_cb(void *data, char *body)
 {
     static struct blob_buf b;
-    struct blob_attr *tb[ARRAY_SIZE(pol)];
+    struct blob_attr *tb[_COUNTERS_RESP_MAX];
 
     if (!body)
         return;
 
     blobmsg_buf_init(&b);
 
-    if (!blobmsg_add_json_from_string(&b, body))
+    if (!blobmsg_add_json_from_string(&b, body)) {
+        ULOG_ERR("counters: invalid resp format\n");
+        blob_buf_free(&b);
         return;
-
-    if (blobmsg_parse(pol, ARRAY_SIZE(pol), tb, blob_data(b.head), blob_len(b.head)) != 0) {
-        ULOG_ERR("Parse counters resp failed:%s\n", body);
-        goto err;
     }
+
+    blobmsg_parse(counters_pol, _COUNTERS_MAX, tb, blob_data(b.head), blob_len(b.head));
 
     if (tb[COUNTERS_RESP]) {
-        struct blob_attr *attr;
-        struct blob_attr *data = blobmsg_data(tb[COUNTERS_RESP]);
-        int len = blobmsg_data_len(tb[COUNTERS_RESP]);
+        int rem;
+        struct blob_attr *item;
 
-         __blob_for_each_attr(attr, data, len) {
-             struct blob_attr *attr2;
-             struct blob_attr *data2 = blobmsg_data(attr);
-             int len2 = blobmsg_data_len(attr);
-                const char *mac = NULL;
-                int auth = 1;
+        blobmsg_for_each_attr(item, blobmsg_data(tb[COUNTERS_RESP]), rem) {
+            blobmsg_parse(resp_pol, _COUNTERS_RESP_MAX, tb, blobmsg_data(item), blobmsg_data_len(item));
 
-             __blob_for_each_attr(attr2, data2, len2) {
-                struct blobmsg_hdr *hdr = blob_data(attr2);
-
-                if (!strcmp((const char *)hdr->name, "mac")) {
-                    mac = blobmsg_get_string(attr2);
-                } else {
-                    auth = blobmsg_get_u32(attr2);
+            if (tb[COUNTERS_RESP_MAC]) {
+                if (tb[COUNTERS_RESP_AUTH] && blobmsg_get_u32(tb[COUNTERS_RESP_AUTH])) {
+                    deny_termianl(blobmsg_data(tb[COUNTERS_RESP_MAC]));
                 }
-             }
-
-             if (mac && auth == 0) {
-               deny_termianl(mac);
-             }
-         }
+            }
+        }
     }
 
-err:
     blob_buf_free(&b);
 }
 
