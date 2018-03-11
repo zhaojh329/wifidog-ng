@@ -1,4 +1,4 @@
-# WifiDog-ng([中文](/README_ZH.md))
+# WifiDog-ng
 
 [1]: https://img.shields.io/badge/license-LGPL2-brightgreen.svg?style=plastic
 [2]: /LICENSE
@@ -24,47 +24,44 @@
 [WifiDog]: https://github.com/wifidog/wifidog-gateway
 [c-ares]: https://github.com/c-ares/c-ares
 
-Next generation [WifiDog]
+WifiDog-ng一个非常高效的无线热点认证解决方案。
 
-WifiDog-ng is a very efficient captive portal solution for wireless router which with
-embedded linux(LEDE/Openwrt) system. 
+`请保持关注以获取最新的项目动态`
 
-`Keep Watching for More Actions on This Space`
+# 特性
+* 使用epoll - 基于[libubox]：单线程，全异步
+* 编写内核模块实现认证管理，而不是使用iptables创建防火墙规则
+* 支持HTTPS：OpenSSL, mbedtls and CyaSSl(wolfssl)
+* 代码结构清晰，通俗易懂
 
-# Features
-* Use epoll - Based on [libubox]: Single threaded, Fully asynchronous, No blocking operation at all
-* Writing kernel module to implement authentication management instead of using iptables to create firewall rules
-* Support HTTPS: OpenSSL, mbedtls and CyaSSl(wolfssl)
-* Code structure is concise and understandable
-
-# Dependencies
+# 依赖
 * [libubox]
 * [libuhttpd]
 * [libuclient]
 * [libuci]
 * [c-ares]
 
-# Install on OpenWrt
+# 安装到OpenWRT
     opkg update
     opkg list | grep wifidog-ng
     opkg install wifidog-ng-nossl
 
-If the install command fails, you can [compile it yourself](/BUILDOPENWRT.md).
+如果安装失败，你可以[自己编译](/BUILDOPENWRT_ZH.md)。
 
-# UCI Config options
+# UCI配置选项
 ## Section gateway
-| Name           | Type        | Required  | Default   | Description |
-| -------------- | ----------- | --------- | ----------| ----------- |
-| enabled        | bool        | no        | 0         | Whether to enable wifidog |
-| ifname         | interface   | no        | br-lan    | Interface to listen by wifidog |
-| port           | port number | no        | 2060      | port to listen by wifidog |
-| ssl_port       | port number | no        | 8443      | ssl port to listen by wifidog |
-| checkinterval  | seconds     | no        | 30        | How many seconds should we wait between timeout checks. This is also how often the gateway will ping the auth server and how often it will update the traffic counters on the auth server.|
-| temppass_time  | seconds     | no        | 30        | Temporary pass time |
-| client_timeout | seconds     | no        | 5         | Set this to the desired of number of CheckInterval of inactivity before a client is logged out. The timeout will be INTERVAL * TIMEOUT |
+| 名称           | 类型        | 是否必须  | 默认值   | 描述 |
+| -------------- | ----------- | --------- | -------- | ----------- |
+| enabled        | bool        | no        | 0        | 是否开启wifidog-ng |
+| ifname         | interface   | no        | br-lan   | wifidog-ng监听接口 |
+| port           | port number | no        | 2060     | wifidog-ng监听端口 |
+| ssl_port       | port number | no        | 8443     | wifidog-ng监听端口（ssl) |
+| checkinterval  | seconds     | no        | 30       | 超时检查时间间隔。也作为心跳间隔，以及流量统计间隔 |
+| temppass_time  | seconds     | no        | 30       | 临时放行时间 |
+| client_timeout | seconds     | no        | 5        | 客户端超时下线时间：checkinterval * client_timeout |
 
 ## Section authserver
-| Name        | Required  | Default         |
+| 名称        | 是否必须  | 默认值         |
 | ------------| --------- | ----------------|
 | host        | yes       | no              |
 | port        | no        | 80              |
@@ -76,28 +73,28 @@ If the install command fails, you can [compile it yourself](/BUILDOPENWRT.md).
 | auth_path   | no        | auth            |
 
 ## Section popularserver
-| Name    | Type | Required  | Default                    |
+| 名称    | 类型 | 是否必须  | 默认值                    |
 | ------- | ---- | --------- | -------------------------- |
 | server  | list | no        | `www.baidu.com www.qq.com` |
 
-# Protocol
-## Gateway heartbeating (Ping Protocol)
+# 协议
+## 网关心跳
 `http://authserver/wifidog/ping?gw_id=xx&sys_uptime=xx&sys_memfree=xx&sys_load=xx&wifidog_uptime=xx`
 
-To this the auth server is expected to respond with an http message containing the word "Pong".
+认证服务器应返回：Pong
 
-## Login
+## 登录
 `http://authserver/wifidog/login?gw_address=xx&gw_port=xx&gw_id=xx&ip=xx&mac=xx&ssid=xx&url=xx`
 
-## Auth
+## 认证
 `http://gw_address:gw_port/wifidog/auth?token=xx`
 
-## Auth confirm
+## 认证确认
 `http://authserver/wifidog/auth?stage=login&ip=xx&max=xx&token=xx&incoming=xx&outgoing=xx`
 
-The response of the auth server should be "Auth: 1" or "Auth: 0"
+认证服务器应返回："Auth: 1" 或者 "Auth: 0"
 
-## Counters (POST)
+## 流量统计(POST)
 `http://authserver/wifidog/auth/?stage=counters&gw_id=xx`
 
 ```
@@ -120,7 +117,7 @@ The response of the auth server should be "Auth: 1" or "Auth: 0"
 }
 ```
 
-The response of the server should be:
+认证服务器应返回如下格式：
 
 ```
 {
@@ -134,9 +131,12 @@ The response of the server should be:
 }
 ```
 
-## Temporary pass
+## 临时放行
 `http://gw_address:gw_port/wifidog/temppass?script=startWeChatAuth();`
 
-# Contributing
-If you would like to help making [wifidog-ng](https://github.com/zhaojh329/wifidog-ng) better,
-see the [CONTRIBUTING.md](https://github.com/zhaojh329/wifidog-ng/blob/master/CONTRIBUTING.md) file.
+# 贡献代码
+如果你想帮助[wifidog-ng](https://github.com/zhaojh329/wifidog-ng)变得更好，请参考
+[CONTRIBUTING_ZH.md](https://github.com/zhaojh329/wifidog-ng/blob/master/CONTRIBUTING_ZH.md)。
+
+# 技术交流
+QQ群：153530783
