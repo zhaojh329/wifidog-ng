@@ -44,4 +44,3 @@ void update_term(struct terminal *term);
 int term_is_allowed(const u8 *mac);
 
 #endif
-

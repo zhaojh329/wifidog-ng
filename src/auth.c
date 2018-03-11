@@ -23,7 +23,6 @@
 #include "utils.h"
 #include "config.h"
 #include "http.h"
-#include "termianl.h"
 
 struct authserver_request_param {
     bool login;

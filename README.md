@@ -6,7 +6,7 @@
 [4]: https://github.com/zhaojh329/wifidog-ng/pulls
 [5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
 [6]: https://github.com/zhaojh329/wifidog-ng/issues/new
-[7]: https://img.shields.io/badge/release-1.1.1-blue.svg?style=plastic
+[7]: https://img.shields.io/badge/release-1.1.2-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/wifidog-ng/releases
 [9]: https://travis-ci.org/zhaojh329/wifidog-ng.svg?branch=master
 [10]: https://travis-ci.org/zhaojh329/wifidog-ng
@@ -107,13 +107,15 @@ The response of the auth server should be "Auth: 1" or "Auth: 0"
         "mac": "xx:xx:xx:xx:xx:xx",
         "token": "eb6d8d7f5ad6f35553a40f66cd2bff70",
         "incoming": 4916,
-        "outgoing": 20408
+        "outgoing": 20408,
+        "uptime": 23223
     }, {
         "ip": "192.168.1.202",
         "mac": "xx:xx:xx:xx:xx:xx",
         "token": "eb6d8d7f5ad6f35553a40f66cd2bff70",
         "incoming": 4916,
-        "outgoing": 20408
+        "outgoing": 20408,
+        "uptime": 23223
     }]
 }
 ```
