@@ -80,7 +80,7 @@ static void counters_cb(void *data, char *body)
         int rem;
         struct blob_attr *item;
 
-        blobmsg_for_each_attr(item, blobmsg_data(tb[COUNTERS_RESP]), rem) {
+        blobmsg_for_each_attr(item, tb[COUNTERS_RESP], rem) {
             blobmsg_parse(resp_pol, _COUNTERS_RESP_MAX, tb, blobmsg_data(item), blobmsg_data_len(item));
 
             if (tb[COUNTERS_RESP_MAC]) {
