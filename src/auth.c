@@ -33,15 +33,18 @@ struct authserver_request_param {
 
 static void authserver_request_cb(void *data, char *content)
 {
-    struct authserver_request_param *param = data;
-    struct uh_client *cl = param->cl;
     struct config *conf = get_config();
-    const char *remote_addr = cl->get_peer_addr(cl);
+    struct authserver_request_param *param = data;
+    struct uh_client *cl;
+    const char *remote_addr;
     char mac[18] = "";
     int code = -1;
-    
+
     if (!param) /* For logout */
         return;
+
+    cl = param->cl;
+    remote_addr = cl->get_peer_addr(cl);
 
     if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
         ULOG_ERR("arp_get failed for %s\n", remote_addr);
