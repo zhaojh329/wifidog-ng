@@ -157,8 +157,8 @@ static int term_seq_show(struct seq_file *s, void *v)
 				auth_time = tv.tv_sec - term->auth_time;
 			}
 
-			seq_printf(s, "%pM  %-16pI4  %-16llu  %-16llu  %-14ld  %-7d  %-32s\n",
-				term->mac, &(term->ip), term->flow.rx, term->flow.tx, auth_time, term->state, term->token);
+			seq_printf(s, "%pM  %-16pI4  %-16llu  %-16llu  %-14u  %-7d  %-32s\n",
+				term->mac, &term->ip, term->flow.rx, term->flow.tx, auth_time, term->state, term->token);
 		}
 	}
 
