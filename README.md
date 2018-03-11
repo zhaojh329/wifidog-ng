@@ -6,7 +6,7 @@
 [4]: https://github.com/zhaojh329/wifidog-ng/pulls
 [5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
 [6]: https://github.com/zhaojh329/wifidog-ng/issues/new
-[7]: https://img.shields.io/badge/release-1.1.0-blue.svg?style=plastic
+[7]: https://img.shields.io/badge/release-1.1.1-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/wifidog-ng/releases
 [9]: https://travis-ci.org/zhaojh329/wifidog-ng.svg?branch=master
 [10]: https://travis-ci.org/zhaojh329/wifidog-ng
@@ -44,25 +44,12 @@ embedded linux(LEDE/Openwrt) system.
 * [libuci]
 * [c-ares]
 
-# How to use
-add new feed into "feeds.conf.default":
+# Install on OpenWrt
+    opkg update
+    opkg list | grep wifidog-ng
+    opkg install wifidog-ng-nossl
 
-    src-git libuhttpd https://github.com/zhaojh329/libuhttpd-feed.git
-    src-git wifidog https://github.com/zhaojh329/wifidog-ng-feed.git
-
-Install wifidog-ng packages:
-
-    ./scripts/feeds update libuhttpd wifidog
-    ./scripts/feeds install -a -p wifidog
-
-Select package wifidog-ng in menuconfig and compile new image.
-
-    Network  --->
-        Captive Portals  --->
-            <*> wifidog-ng-mbedtls.................................... wifidog-ng (mbedtls)
-            < > wifidog-ng-nossl....................................... wifidog-ng (NO SSL)
-            < > wifidog-ng-openssl.................................... wifidog-ng (openssl)
-            < > wifidog-ng-wolfssl.................................... wifidog-ng (wolfssl)
+If the install command fails, you can [compile it yourself](/BUILDOPENWRT.md).
 
 # UCI Config options
 ## Section gateway
