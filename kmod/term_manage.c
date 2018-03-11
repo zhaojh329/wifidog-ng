@@ -54,6 +54,8 @@ static int term_mark(const u8 *mac, int state, const char *token)
 				term->auth_time = tv.tv_sec;
 			} else if (state == TERM_STATE_TEMPPASS) {
 				term_timer_refresh(term, conf->temppass_time);
+			} else if (state == TERM_STATE_UNKNOWN) {
+				term_timer_refresh(term, conf->client_timeout);
 			}
 			write_unlock_bh(&term_lock);
 			return 0;
