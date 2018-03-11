@@ -156,6 +156,7 @@ func main() {
                 if stage == "login" {
                     auth = 1
                 } else if stage == "logout" {
+                    log.Println("logout:", mac)
                     delete(clients, mac)
                 }
             } else {
