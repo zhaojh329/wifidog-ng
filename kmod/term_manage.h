@@ -12,8 +12,12 @@
 #include <linux/types.h>
 #include <linux/if_ether.h>
 
-#define TERM_ACTIVE     (1 << 0)
-#define TERM_AUTHED     (1 << 1)
+enum term_state {
+    TERM_STATE_UNKNOWN,
+    TERM_STATE_TEMPPASS,
+    TERM_STATE_AUTHED,
+    TERM_STATE_TIMEOUT
+};
 
 struct term_flow {
     u64 tx;
@@ -25,11 +29,10 @@ struct terminal {
     __be32 ip;
     u8 mac[ETH_ALEN];
     u8 token[33];
-    u8 active;
-    u32 j;
-    u8 flags;
+    enum term_state state;
+    u32 auth_time;
     struct term_flow flow;
-    struct timer_list expires;
+    struct timer_list timer;
 };
 
 int term_init(struct proc_dir_entry *proc);
@@ -37,7 +40,8 @@ void term_free(struct proc_dir_entry *proc);
 
 struct terminal *find_term_by_mac(const u8 *mac);
 int add_term(u8 *mac, __be32 ip);
-int term_is_authd(const u8 *mac);
+void update_term(struct terminal *term);
+int term_is_allowed(const u8 *mac);
 
 #endif
 

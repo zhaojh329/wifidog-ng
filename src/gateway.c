@@ -29,7 +29,6 @@
 #include "utils.h"
 #include "resolv.h"
 #include "config.h"
-#include "termianl.h"
 #include "check_internet.h"
 
 static void usage(const char *prog)
@@ -69,8 +68,7 @@ int main(int argc, char **argv)
 
     if (auth_init() < 0)
         goto EXIT;
-    
-    termianl_init();
+
     wifidog_ubus_init();
     start_check_internet();
 

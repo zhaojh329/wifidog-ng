@@ -41,7 +41,7 @@ static void check_internet_available_cb(struct hostent *he, void *data)
             start_heartbeat();
             start_counters();
             allow_domain(conf->authserver.host);
-            enable_kmod(conf->gw_interface, conf->gw_port, conf->gw_ssl_port);
+            enable_kmod(conf->gw_interface);
         }
     } else {
         struct popular_server *popular_server = data;
@@ -80,5 +80,6 @@ static struct uloop_timeout timeout = {
 
 void start_check_internet()
 {
-    uloop_timeout_set(&timeout, 0);
+    /* Wait for network interface to be created */
+    uloop_timeout_set(&timeout, 10000);
 }

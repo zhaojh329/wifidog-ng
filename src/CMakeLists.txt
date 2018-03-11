@@ -13,7 +13,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR} ${LIBUHTTPD_INCLUDE_DIR} ${LIBUB
 set(EXTRA_LIBS ${LIBUHTTPD_LIBRARY} ${LIBUBOX_LIBRARY} uci uclient blobmsg_json ubus cares)
 
 add_executable(wifidog-ng gateway.c auth.c utils.c config.c http.c heartbeat.c counters.c ubus.c
-	termianl.c resolv.c check_internet.c)
+	resolv.c check_internet.c)
 
 target_link_libraries(wifidog-ng ${EXTRA_LIBS})
 

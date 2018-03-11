@@ -234,6 +234,24 @@ static void parse_popular_server(struct uci_section *s)
     }
 }
 
+static int config_kmod()
+{
+    FILE *fp = fopen("/proc/wifidog-ng/config", "w");
+    if (!fp) {
+        ULOG_ERR("Kernel module is not loaded\n");
+        return -1;
+    }
+
+    fprintf(fp, "port=%d\n", conf.gw_port);
+    fprintf(fp, "ssl_port=%d\n", conf.gw_ssl_port);
+    fprintf(fp, "client_timeout=%d\n", conf.checkinterval * conf.clienttimeout);
+    fprintf(fp, "temppass_time=%d\n", conf.temppass_time);
+    fclose(fp);
+
+    ULOG_INFO("Config kmod OK\n");
+    return 0;
+}
+
 int parse_config()
 {
     struct uci_context *ctx = uci_alloc_context();
@@ -302,7 +320,8 @@ int parse_config()
         authserver->host, port, authserver->path, authserver->msg_path, conf.gw_id))
         goto err;
 
-    return 0;
+    return config_kmod();
+
 err:
     ULOG_ERR("asprintf: %s\n", strerror(errno));
     return -1;

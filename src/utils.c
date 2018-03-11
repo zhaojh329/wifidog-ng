@@ -30,8 +30,8 @@
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <libubox/ulog.h>
-#include <netinet/ip_icmp.h>
 
+#include "utils.h"
 #include "resolv.h"
 
 int get_iface_ip(const char *ifname, char *dst, int len)
@@ -157,7 +157,7 @@ int urlencode(char *buf, int blen, const char *src, int slen)
 
 int allow_destip(const char *ip)
 {
-    FILE *fp = fopen("/proc/wifidog/ip", "w");
+    FILE *fp = fopen("/proc/wifidog-ng/ip", "w");
     if (!fp) {
         ULOG_ERR("Kernel module is not loaded\n");
         return -1;
@@ -171,17 +171,15 @@ int allow_destip(const char *ip)
     return 0;
 }
 
-int enable_kmod(const char *interface, int port, int ssl_port)
+int enable_kmod(const char *interface)
 {
-    FILE *fp = fopen("/proc/wifidog/config", "w");
+    FILE *fp = fopen("/proc/wifidog-ng/config", "w");
     if (!fp) {
         ULOG_ERR("Kernel module is not loaded\n");
         return -1;
     }
 
     fprintf(fp, "interface=%s\n", interface);
-    fprintf(fp, "port=%d\n", port);
-    fprintf(fp, "ssl_port=%d\n", ssl_port);
     fprintf(fp, "enabled=1\n");
     fclose(fp);
 
@@ -191,7 +189,7 @@ int enable_kmod(const char *interface, int port, int ssl_port)
 
 int disable_kmod()
 {
-    FILE *fp = fopen("/proc/wifidog/config", "w");
+    FILE *fp = fopen("/proc/wifidog-ng/config", "w");
     if (!fp) {
         ULOG_ERR("Kernel module is not loaded\n");
         return -1;
@@ -228,65 +226,38 @@ int allow_domain(const char *domain)
     return 0;
 }
 
-
-/* Get a 16-bit unsigned random number. */
-uint16_t rand16()
+int allow_termianl(const char *mac, const char *token, bool temporary)
 {
-    static int been_seeded = 0;
+    FILE *fp;
 
-    if (!been_seeded) {
-        uint32_t seed = 0;
-        struct timeval now;
-
-        /* not a very good seed but what the heck, it needs to be quickly acquired */
-        gettimeofday(&now, NULL);
-        seed = now.tv_sec ^ now.tv_usec ^ (getpid() << 16);
-
-        srand(seed);
-        been_seeded = 1;
-    }
-
-    /* Some rand() implementations have less randomness in low bits
-     * than in high bits, so we only pay attention to the high ones.
-     * But most implementations don't touch the high bit, so we
-     * ignore that one. */
-    return ((uint16_t)(rand() >> 15));
-}
-
-/*
- * note, to allow root to use icmp sockets, run:
- * sysctl -w net.ipv4.ping_group_range="0 0"
- */
-int get_icmp_socket()
-{
-    int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
-    if (sock < 0) {
-        ULOG_ERR("get_icmp_socket error: %s\n", strerror(errno));
+    fp = fopen("/proc/wifidog-ng/term", "w");
+    if (!fp) {
+        ULOG_ERR("fopen:%s\n", strerror(errno));
         return -1;
     }
 
-    return sock;
+    fprintf(fp, "%c%s %s\n", temporary ? '?' : '+', mac, token ? token : "");
+    fclose(fp);
+
+    ULOG_INFO("allow termianl %s: %s\n", temporary ? "temporary" : "", mac);
+
+    return 0;
 }
 
-/* Ping an IP. */
-void icmp_ping(int sock, const char *ipaddr)
+int deny_termianl(const char *mac)
 {
-    struct sockaddr_in addr;
-    struct icmphdr hdr = {
-        .type = ICMP_ECHO
-    };
+    FILE *fp;
 
-    if (sock < 0)
-        return;
-
-    memset(&addr, 0, sizeof addr);
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr(ipaddr);
-
-    hdr.un.echo.id = rand16();
-
-    if (sendto(sock, &hdr, sizeof(hdr), 0, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        ULOG_ERR("icmp_ping sendto(): %s\n", strerror(errno));
-        return;
+    fp = fopen("/proc/wifidog-ng/term", "w");
+    if (!fp) {
+        ULOG_ERR("Kernel module is not loaded\n");
+        return -1;
     }
+
+    fprintf(fp, "-%s\n", mac);
+    fclose(fp);
+
+    ULOG_INFO("deny termianl: %s\n", mac);
+
+    return 0;
 }

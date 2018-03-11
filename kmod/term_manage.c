@@ -14,9 +14,10 @@
 #include <linux/etherdevice.h>
 #include <linux/inet.h>
 #include <linux/jhash.h>
+
+#include "config.h"
 #include "term_manage.h"
 
-#define TERM_TTL					60
 #define TERM_HASH_SIZE 				(1 << 8)
 
 static u32 hash_rnd __read_mostly;
@@ -31,18 +32,28 @@ static inline int term_mac_hash(const u8 *mac)
 	return jhash_1word(key, hash_rnd) & (TERM_HASH_SIZE - 1);
 }
 
-static int term_mark(const u8 *mac, int authed, const char *token)
+static inline void term_timer_refresh(struct terminal *term, u32 timeout)
 {
+	mod_timer(&term->timer, jiffies + timeout * HZ);
+}
+
+static int term_mark(const u8 *mac, int state, const char *token)
+{
+	struct config *conf = get_config();
 	struct terminal *term;
 	u32 hash = term_mac_hash(mac);
+	struct timeval tv;
 
 	write_lock_bh(&term_lock);
 	hlist_for_each_entry(term, &term_mac_hash_table[hash], node) {
 		if (ether_addr_equal(term->mac, mac)) {
-			term->flags &= ~TERM_AUTHED;
-			if (authed) {
-				term->flags |= TERM_AUTHED;
+			term->state = state;
+			if (state == TERM_STATE_AUTHED) {
 				strcpy(term->token, token);
+				jiffies_to_timeval(jiffies, &tv);
+				term->auth_time = tv.tv_sec;
+			} else if (state == TERM_STATE_TEMPPASS) {
+				term_timer_refresh(term, conf->temppass_time);
 			}
 			write_unlock_bh(&term_lock);
 			return 0;
@@ -54,18 +65,23 @@ static int term_mark(const u8 *mac, int authed, const char *token)
 
 static inline int term_mark_authed(const u8 *mac, const char *token)
 {
-	return term_mark(mac, TERM_AUTHED, token);
+	return term_mark(mac, TERM_STATE_AUTHED, token);
+}
+
+static inline int term_mark_temppass(const u8 *mac)
+{
+	return term_mark(mac, TERM_STATE_TEMPPASS, NULL);
 }
 
 static inline int term_mark_denied(const u8 *mac)
 {
-	return term_mark(mac, 0, NULL);
+	return term_mark(mac, TERM_STATE_UNKNOWN, NULL);
 }
 
-int term_is_authd(const u8 *mac)
+int term_is_allowed(const u8 *mac)
 {
 	struct terminal *term = find_term_by_mac(mac);
-	if (term && (term->flags & TERM_AUTHED))
+	if (term && (term->state == TERM_STATE_AUTHED || term->state == TERM_STATE_TEMPPASS))
 		return 1;
 	return 0;
 }
@@ -85,7 +101,7 @@ static void term_clear(void)
 		chain = &term_mac_hash_table[i];
 		hlist_for_each_entry_safe(pos, next, chain, node) {
 			hlist_del(&pos->node);
-			del_timer(&pos->expires);
+			del_timer(&pos->timer);
 			kmem_cache_free(term_cache, pos);
 		}
 
@@ -130,17 +146,19 @@ static int term_seq_show(struct seq_file *s, void *v)
 	struct hlist_head *head = v;
 	struct terminal *term;
 	struct timeval tv;
-	u8 authed = 0;
+	u32 auth_time = 0;
 	
 	if (v == SEQ_START_TOKEN) {
-		seq_printf(s, "%-17s  %-16s  %-16s  %-16s  %-14s  %-7s  %-32s\n", "MAC", "IP", "Rx", "Tx", "Time", "Authed", "Token");
+		seq_printf(s, "%-17s  %-16s  %-16s  %-16s  %-14s  %-7s  %-32s\n", "MAC", "IP", "Rx", "Tx", "Time", "State", "Token");
 	} else {
 		hlist_for_each_entry(term, head, node) {
-			jiffies_to_timeval(jiffies - term->j, &tv);
-			if (term->flags & TERM_AUTHED)
-				authed = 1;
+			if (term->state == TERM_STATE_AUTHED) {
+				jiffies_to_timeval(jiffies, &tv);	
+				auth_time = tv.tv_sec - term->auth_time;
+			}
+
 			seq_printf(s, "%pM  %-16pI4  %-16llu  %-16llu  %-14ld  %-7d  %-32s\n",
-				term->mac, &(term->ip), term->flow.rx, term->flow.tx, tv.tv_sec, authed, term->token);
+				term->mac, &(term->ip), term->flow.rx, term->flow.tx, auth_time, term->state, term->token);
 		}
 	}
 
@@ -191,11 +209,12 @@ static ssize_t proc_term_write(struct file *file, const char __user *buf, size_t
 		
 		op = data[0];
 		
-		if (op == '+') {
+		if (op == '+')
 			term_mark_authed(mac, token);
-		} else if (op == '-') {
+		else if (op== '?')
+			term_mark_temppass(mac);
+		else if (op == '-')
 			term_mark_denied(mac);
-		}
 		else
 			pr_err("invalid format: %s\n", data);
 	}
@@ -212,26 +231,6 @@ static const struct file_operations proc_term_ops = {
 	.llseek 	= seq_lseek,
 	.release 	= seq_release
 };
-
-static inline void term_timer_refresh(struct terminal *term, u32 timeout)
-{
-	mod_timer(&term->expires, jiffies + timeout * HZ);
-}
-
-static void term_timer_timeout(unsigned long ptr)
-{
-	struct terminal *term = (struct terminal *)ptr;
-
-	if (!(term->flags & TERM_ACTIVE)) {
-		write_lock_bh(&term_lock);
-		hlist_del(&term->node);
-		write_unlock_bh(&term_lock);		
-		kmem_cache_free(term_cache, term);
-	} else {
-		term->active &= ~TERM_ACTIVE;
-		term_timer_refresh(term, TERM_TTL);
-	}
-}
 
 static struct terminal *term_alloc(void)
 {
@@ -262,8 +261,27 @@ struct terminal *find_term_by_mac(const u8 *mac)
 	return NULL;
 }
 
+static void term_timer_timeout(unsigned long ptr)
+{
+	struct terminal *term = (struct terminal *)ptr;
+
+	if (term->state == TERM_STATE_AUTHED) {
+		term->state = TERM_STATE_TIMEOUT;
+		return;
+	} else if (term->state == TERM_STATE_TEMPPASS) {
+		term->state = TERM_STATE_UNKNOWN;
+		return;
+	}
+
+	write_lock_bh(&term_lock);
+	hlist_del(&term->node);
+	write_unlock_bh(&term_lock);		
+	kmem_cache_free(term_cache, term);
+}
+
 int add_term(u8 *mac, __be32 ip)
 {
+	struct config *conf = get_config();
 	struct terminal *term = NULL;
 	u32 hash = term_mac_hash(mac);
 	
@@ -271,19 +289,27 @@ int add_term(u8 *mac, __be32 ip)
 	if (!term)
 		return -ENOMEM;
 
-	term->j = jiffies;
 	term->ip = ip;
 	memcpy(term->mac, mac, ETH_ALEN);
 
-	setup_timer(&term->expires, term_timer_timeout, (unsigned long)term);
+	setup_timer(&term->timer, term_timer_timeout, (unsigned long)term);
 	
 	write_lock_bh(&term_lock);
 	hlist_add_head(&term->node, &term_mac_hash_table[hash]);
 	write_unlock_bh(&term_lock);
 
-	term_timer_refresh(term, TERM_TTL);
+	term_timer_refresh(term, conf->client_timeout);
 	
 	return 0;
+}
+
+void update_term(struct terminal *term)
+{
+	struct config *conf = get_config();
+
+	if (term->state == TERM_STATE_TEMPPASS)
+		return;
+	term_timer_refresh(term, conf->client_timeout);
 }
 
 int term_init(struct proc_dir_entry *proc)

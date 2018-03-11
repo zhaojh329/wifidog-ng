@@ -28,7 +28,6 @@
 #include "auth.h"
 #include "utils.h"
 #include "config.h"
-#include "termianl.h"
 
 enum {
     COUNTERS_RESP,
@@ -98,16 +97,14 @@ static void counters_cb(void *data, char *body)
 static void counters(struct uloop_timeout *t)
 {
     FILE *fp = NULL;
-    char buf[1024], *p, *mac, *ip, *rx, *tx, *authed, *token;
+    char buf[1024], *p, *mac, *ip, *rx, *tx, *uptime, *state, *token;
     struct config *conf = get_config();
-    time_t current_time = time(NULL);
-    struct termianl *term;
     struct blob_buf b;
     void *tbl, *array;
 
     uloop_timeout_set(t, 1000 * conf->checkinterval);
 
-    fp = fopen("/proc/wifidog/term", "r");
+    fp = fopen("/proc/wifidog-ng/term", "r");
     if (!fp) {
         ULOG_ERR("fopen:%s\n", strerror(errno));
         return;
@@ -131,45 +128,38 @@ static void counters(struct uloop_timeout *t)
         ip = strtok(NULL, " ");
         rx = strtok(NULL, " ");
         tx = strtok(NULL, " ");
-        strtok(NULL, " ");
-        authed = strtok(NULL, " ");
+        uptime = strtok(NULL, " ");
+        state = strtok(NULL, " ");
         token = strtok(NULL, " ");
 
-        if (*authed != '1' || !token)
+        if (!token || *token == 0)
             continue;
 
         p = strrchr(token, '\n');
         if (p)
             *p = 0;
 
-        term = find_element(mac);
-        if (!term)
-            continue;
-
-        if (term->last_rx != atoll(rx) || term->last_tx != atoll(tx))
-            term->last_update = time(NULL);
-
-        if (term->last_update + (conf->checkinterval * conf->clienttimeout) <= current_time) {
+        if (state[0] == '3') {
+            ULOG_INFO("Client(%s) timeout\n", mac);
             authserver_request(NULL, "logout", ip, mac, token);
             deny_termianl(mac);
             continue;
         }
 
-        term->last_rx = atoll(rx);
-        term->last_tx = atoll(tx);
-
-        tbl = blobmsg_open_table(&b, "");
-        blobmsg_add_string(&b, "ip", ip);
-        blobmsg_add_string(&b, "mac", mac);
-        blobmsg_add_string(&b, "token", token);
-        blobmsg_add_u64(&b, "incoming", atoll(rx));
-        blobmsg_add_u64(&b, "outgoing", atoll(tx));
-        blobmsg_close_table(&b, tbl);
+        if (state[0] == '2') {
+            tbl = blobmsg_open_table(&b, "");
+            blobmsg_add_string(&b, "ip", ip);
+            blobmsg_add_string(&b, "mac", mac);
+            blobmsg_add_string(&b, "token", token);
+            blobmsg_add_string(&b, "uptime", uptime);
+            blobmsg_add_u64(&b, "incoming", atoll(rx));
+            blobmsg_add_u64(&b, "outgoing", atoll(tx));
+            blobmsg_close_table(&b, tbl);
+        }
     }
 
     blobmsg_close_table(&b, array);
     p = blobmsg_format_json(b.head, true);
-
     httppost(counters_cb, NULL, p, "%s&stage=counters", conf->auth_url);
 
     free(p);
