@@ -22,7 +22,6 @@
 #include <string.h>
 #include <errno.h>
 #include <libubox/ulog.h>
-#include <libubox/avl-cmp.h>
 
 #include "utils.h"
 #include "config.h"
@@ -30,9 +29,14 @@
 
 static struct avl_tree term_tree;
 
+static int termianl_avl_strcmp(const void *k1, const void *k2, void *ptr)
+{
+    return strcasecmp(k1, k2);
+}
+
 void termianl_init()
 {
-    avl_init(&term_tree, avl_strcmp, false, NULL);
+    avl_init(&term_tree, termianl_avl_strcmp, false, NULL);
 }
 
 int deny_termianl(const char *mac)
