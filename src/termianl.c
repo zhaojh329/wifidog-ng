@@ -49,13 +49,14 @@ int deny_termianl(const char *mac)
     fprintf(fp, "-%s\n", mac);
     fclose(fp);
 
+    ULOG_INFO("deny termianl: %s\n", mac);
+
     term = avl_find_element(&term_tree, mac, term, node);
     if (term) {
         avl_delete(&term_tree, &term->node);
         free(term);
     }
 
-    ULOG_INFO("deny termianl: %s\n", mac);
     return 0;
 }
 
