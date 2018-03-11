@@ -270,9 +270,6 @@ static void term_timer_timeout(unsigned long ptr)
 	if (term->state == TERM_STATE_AUTHED) {
 		term->state = TERM_STATE_TIMEOUT;
 		return;
-	} else if (term->state == TERM_STATE_TEMPPASS) {
-		term->state = TERM_STATE_UNKNOWN;
-		return;
 	}
 
 	write_lock_bh(&term_lock);
