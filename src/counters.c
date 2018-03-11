@@ -84,8 +84,10 @@ static void counters_cb(void *data, char *body)
             blobmsg_parse(resp_pol, _COUNTERS_RESP_MAX, tb, blobmsg_data(item), blobmsg_data_len(item));
 
             if (tb[COUNTERS_RESP_MAC]) {
-                if (tb[COUNTERS_RESP_AUTH] && blobmsg_get_u32(tb[COUNTERS_RESP_AUTH])) {
-                    deny_termianl(blobmsg_data(tb[COUNTERS_RESP_MAC]));
+                if (tb[COUNTERS_RESP_AUTH] && !blobmsg_get_u32(tb[COUNTERS_RESP_AUTH])) {
+                    const char *mac = blobmsg_data(tb[COUNTERS_RESP_MAC]);
+                    ULOG_INFO("Auth server resp deny for %s\n", mac);
+                    deny_termianl(mac);
                 }
             }
         }

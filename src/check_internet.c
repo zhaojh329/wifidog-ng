@@ -33,9 +33,9 @@ static void check_internet_available_cb(struct hostent *he, void *data)
     struct config *conf = get_config();
 
     if (he) {
-        ULOG_INFO("Internet is available\n");
-
         if (offline_time == -1 || offline_time > 0) {
+            ULOG_INFO("Internet became available\n");
+
             offline_time = 0;
 
             start_heartbeat();
@@ -46,7 +46,7 @@ static void check_internet_available_cb(struct hostent *he, void *data)
     } else {
         struct popular_server *popular_server = data;
 
-        ULOG_INFO("Internet is not available\n");
+        ULOG_INFO("Internet became not available\n");
 
         if (popular_server->next) {
             resolv_start(popular_server->next->hostname, check_internet_available_cb, popular_server->next);
