@@ -147,7 +147,7 @@ func main() {
             body, _ := ioutil.ReadAll(r.Body)
             r.Body.Close()
             log.Println("counters:", string(body))
-            fmt.Fprintf(w, "ok")
+            fmt.Fprintf(w, "{\"resp\":[]}")
             return;
         }
 
