@@ -57,6 +57,7 @@ int deny_termianl(const char *mac)
 
     term = avl_find_element(&term_tree, mac, term, node);
     if (term) {
+        uloop_timeout_cancel(&term->timer);
         avl_delete(&term_tree, &term->node);
         free(term);
     }
