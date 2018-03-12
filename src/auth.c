@@ -133,7 +133,7 @@ static void http_callback_auth(struct uh_client *cl)
         return;
     }
 
-    if (token) {
+    if (token && *token) {
         const char *logout = cl->get_var(cl, "logout");
         if (logout)
             authserver_request(cl, "logout", remote_addr, mac, token);
