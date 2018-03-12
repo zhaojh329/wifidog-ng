@@ -230,7 +230,11 @@ static int __init wifidog_init(void)
         goto free_term;
     }
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 12, 14)
+    ret = nf_register_net_hooks(&init_net, wifidog_ops, ARRAY_SIZE(wifidog_ops));
+#else
     ret = nf_register_hooks(wifidog_ops, ARRAY_SIZE(wifidog_ops));
+#endif
     if (ret < 0) {
         pr_err("can't register hook\n");
         goto free_tip;
@@ -256,7 +260,12 @@ static void __exit wifidog_exit(void)
     term_free(proc);
     ip_manage_free(proc);
     deinit_config();
+
+#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 12, 14)
+    nf_unregister_net_hooks(&init_net, wifidog_ops, ARRAY_SIZE(wifidog_ops));
+#else
     nf_unregister_hooks(wifidog_ops, ARRAY_SIZE(wifidog_ops));
+#endif
 
     pr_info("kmod of wifidog is stop\n");
 }
