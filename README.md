@@ -137,6 +137,8 @@ The response of the server should be:
 ## Temporary pass
 `http://gw_address:gw_port/wifidog/temppass?script=startWeChatAuth();`
 
+# [Test Server](https://github.com/zhaojh329/wifidog-ng-authserver)
+
 # Contributing
 If you would like to help making [wifidog-ng](https://github.com/zhaojh329/wifidog-ng) better,
 see the [CONTRIBUTING.md](https://github.com/zhaojh329/wifidog-ng/blob/master/CONTRIBUTING.md) file.

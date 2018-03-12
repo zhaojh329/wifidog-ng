@@ -134,6 +134,8 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 ## 临时放行
 `http://gw_address:gw_port/wifidog/temppass?script=startWeChatAuth();`
 
+# [测试服务器](https://github.com/zhaojh329/wifidog-ng-authserver)
+
 # 贡献代码
 如果你想帮助[wifidog-ng](https://github.com/zhaojh329/wifidog-ng)变得更好，请参考
 [CONTRIBUTING_ZH.md](https://github.com/zhaojh329/wifidog-ng/blob/master/CONTRIBUTING_ZH.md)。
