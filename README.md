@@ -59,6 +59,7 @@ If the install command fails, you can [compile it yourself](/BUILDOPENWRT.md).
 | ifname         | interface   | no        | br-lan    | Interface to listen by wifidog |
 | port           | port number | no        | 2060      | port to listen by wifidog |
 | ssl_port       | port number | no        | 8443      | ssl port to listen by wifidog |
+| ssid           | ssid        | no        |           | Used for WeChat |
 | checkinterval  | seconds     | no        | 30        | How many seconds should we wait between timeout checks. This is also how often the gateway will ping the auth server and how often it will update the traffic counters on the auth server.|
 | temppass_time  | seconds     | no        | 30        | Temporary pass time |
 | client_timeout | seconds     | no        | 5         | Set this to the desired of number of CheckInterval of inactivity before a client is logged out. The timeout will be INTERVAL * TIMEOUT |

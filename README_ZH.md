@@ -56,6 +56,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 | ifname         | interface   | no        | br-lan   | wifidog-ng监听接口 |
 | port           | port number | no        | 2060     | wifidog-ng监听端口 |
 | ssl_port       | port number | no        | 8443     | wifidog-ng监听端口（ssl) |
+| ssid           | ssid        | no        |          | 用于微信认证 |
 | checkinterval  | seconds     | no        | 30       | 超时检查时间间隔。也作为心跳间隔，以及流量统计间隔 |
 | temppass_time  | seconds     | no        | 30       | 临时放行时间 |
 | client_timeout | seconds     | no        | 5        | 客户端超时下线时间：checkinterval * client_timeout |
