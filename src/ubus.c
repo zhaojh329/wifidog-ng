@@ -26,24 +26,43 @@
 static struct ubus_context *ctx;
 
 enum {
-    STATUS_INTERNET,
-    __STATUS_MAX
+    TERM_ACTION,
+    TERM_MAC,
+    __TERM_MAX
 };
 
-static const struct blobmsg_policy status_policy[] = {
-    [STATUS_INTERNET] = { .name = "internet", .type = BLOBMSG_TYPE_BOOL },
+static const struct blobmsg_policy term_policy[] = {
+    [TERM_ACTION] = { .name = "action", .type = BLOBMSG_TYPE_STRING },
+    [TERM_MAC] = { .name = "mac", .type = BLOBMSG_TYPE_STRING },
 };
 
-static int server_status(struct ubus_context *ctx, struct ubus_object *obj,
+static int serve_term(struct ubus_context *ctx, struct ubus_object *obj,
              struct ubus_request_data *req, const char *method,
              struct blob_attr *msg)
 {
+    struct blob_attr *tb[__TERM_MAX];
+    const char *action, *mac;
+
+    blobmsg_parse(term_policy, __TERM_MAX, tb, blob_data(msg), blob_len(msg));
+
+    if (!tb[TERM_ACTION] || !tb[TERM_MAC])
+        return UBUS_STATUS_INVALID_ARGUMENT;
+
+    action = blobmsg_data(tb[TERM_ACTION]);
+    mac = blobmsg_data(tb[TERM_MAC]);
+
+    if (!strcmp(action, "add"))
+        allow_termianl(mac, NULL, false);
+    else if (!strcmp(action, "del"))
+        deny_termianl(mac);
+    else
+        return UBUS_STATUS_NOT_SUPPORTED;
 
     return 0;
 }
 
 static const struct ubus_method wifidog_methods[] = {
-    UBUS_METHOD("status", server_status, status_policy)
+    UBUS_METHOD("term", serve_term, term_policy)
 };
 
 static struct ubus_object_type wifidog_object_type =
