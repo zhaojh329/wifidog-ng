@@ -61,8 +61,43 @@ static int serve_term(struct ubus_context *ctx, struct ubus_object *obj,
     return 0;
 }
 
+enum {
+    DOMAIN_ACTION,
+    DOMAIN_DOMAIN,
+    __DOMAIN_MAX
+};
+
+static const struct blobmsg_policy domain_policy[] = {
+    [DOMAIN_ACTION] = { .name = "action", .type = BLOBMSG_TYPE_STRING },
+    [DOMAIN_DOMAIN] = { .name = "domain", .type = BLOBMSG_TYPE_STRING },
+};
+
+static int serve_domain(struct ubus_context *ctx, struct ubus_object *obj,
+             struct ubus_request_data *req, const char *method,
+             struct blob_attr *msg)
+{
+    struct blob_attr *tb[__DOMAIN_MAX];
+    const char *action, *domain;
+
+    blobmsg_parse(domain_policy, __DOMAIN_MAX, tb, blob_data(msg), blob_len(msg));
+
+    if (!tb[DOMAIN_ACTION] || !tb[DOMAIN_DOMAIN])
+        return UBUS_STATUS_INVALID_ARGUMENT;
+
+    action = blobmsg_data(tb[DOMAIN_ACTION]);
+    domain = blobmsg_data(tb[DOMAIN_DOMAIN]);
+
+    if (!strcmp(action, "add"))
+        allow_domain(domain);
+    else
+        return UBUS_STATUS_NOT_SUPPORTED;
+
+    return 0;
+}
+
 static const struct ubus_method wifidog_methods[] = {
-    UBUS_METHOD("term", serve_term, term_policy)
+    UBUS_METHOD("term", serve_term, term_policy),
+    UBUS_METHOD("domain", serve_domain, domain_policy),
 };
 
 static struct ubus_object_type wifidog_object_type =
