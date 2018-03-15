@@ -69,7 +69,7 @@ static struct ubus_object_type wifidog_object_type =
     UBUS_OBJECT_TYPE("wifidog", wifidog_methods);
 
 static struct ubus_object server_object = {
-    .name = "wifidog",
+    .name = "wifidog-ng",
     .type = &wifidog_object_type,
     .methods = wifidog_methods,
     .n_methods = ARRAY_SIZE(wifidog_methods),
