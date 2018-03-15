@@ -53,6 +53,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 | 名称           | 类型        | 是否必须  | 默认值   | 描述 |
 | -------------- | ----------- | --------- | -------- | ----------- |
 | enabled        | bool        | no        | 0        | 是否开启wifidog-ng |
+| id             | string      | no        |          | 网关ID，如果未设置，将使用ifname的macaddr |
 | ifname         | interface   | no        | br-lan   | wifidog-ng监听接口 |
 | port           | port number | no        | 2060     | wifidog-ng监听端口 |
 | ssl_port       | port number | no        | 8443     | wifidog-ng监听端口（ssl) |
