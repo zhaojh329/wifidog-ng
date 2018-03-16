@@ -22,6 +22,7 @@
 #include "utils.h"
 #include "config.h"
 #include "counters.h"
+#include "uci.h"
 
 static struct ubus_context *ctx;
 
@@ -62,42 +63,112 @@ static int serve_term(struct ubus_context *ctx, struct ubus_object *obj,
 }
 
 enum {
-    DOMAIN_ACTION,
-    DOMAIN_DOMAIN,
-    __DOMAIN_MAX
+    WHITELIST_ACTION,
+    WHITELIST_DOMAIN,
+    WHITELIST_MAC,
+    __WHITELIST_MAX
 };
 
-static const struct blobmsg_policy domain_policy[] = {
-    [DOMAIN_ACTION] = { .name = "action", .type = BLOBMSG_TYPE_STRING },
-    [DOMAIN_DOMAIN] = { .name = "domain", .type = BLOBMSG_TYPE_STRING },
+static const struct blobmsg_policy whitelist_policy[] = {
+    [WHITELIST_ACTION] = { .name = "action", .type = BLOBMSG_TYPE_STRING },
+    [WHITELIST_DOMAIN] = { .name = "domain", .type = BLOBMSG_TYPE_STRING },
+    [WHITELIST_DOMAIN] = { .name = "mac", .type = BLOBMSG_TYPE_STRING },
 };
 
-static int serve_domain(struct ubus_context *ctx, struct ubus_object *obj,
+static int save_whitelist(const char *action, const char *option, const char *value)
+{
+    struct uci_context *cursor = uci_alloc_context();
+    struct uci_ptr ptr = {
+        .package = "wifidog-ng"
+    };
+    struct uci_package *p = NULL;
+    struct uci_section *s;
+    struct uci_element *e;
+
+    if (uci_load(cursor, ptr.package, &p)) {
+        uci_perror(cursor, "");
+        return cursor->err;
+    }
+
+    uci_foreach_element(&p->sections, e) {
+        s = uci_to_section(e);
+
+        if (!strcmp(s->type, "whitelist"))
+            break;
+        s = NULL;
+    }
+
+    if (!s)
+        uci_add_section(cursor, p, "whitelist", &s);
+
+    ptr.s = s;
+    ptr.option = option;
+    ptr.value = value;
+
+    if (!strcmp(action, "add")) {
+        ptr.o = uci_lookup_option(cursor, s, ptr.option);
+
+        uci_foreach_element(&ptr.o->v.list, e) {
+            if (!strcmp(uci_to_option(e)->e.name, value));
+                goto RET;
+        }
+
+        uci_add_list(cursor, &ptr);
+    } else {
+        uci_del_list(cursor, &ptr);
+    }
+
+    uci_save(cursor, p);
+    uci_commit(cursor, &p, false);
+
+RET:
+    uci_unload(cursor, p);
+    return 0;
+}
+
+static int serve_whitelist(struct ubus_context *ctx, struct ubus_object *obj,
              struct ubus_request_data *req, const char *method,
              struct blob_attr *msg)
 {
-    struct blob_attr *tb[__DOMAIN_MAX];
-    const char *action, *domain;
+    struct blob_attr *tb[__WHITELIST_MAX];
+    const char *action, *domain = NULL, *mac = NULL;
 
-    blobmsg_parse(domain_policy, __DOMAIN_MAX, tb, blob_data(msg), blob_len(msg));
+    blobmsg_parse(whitelist_policy, __WHITELIST_MAX, tb, blob_data(msg), blob_len(msg));
 
-    if (!tb[DOMAIN_ACTION] || !tb[DOMAIN_DOMAIN])
+    if (!tb[WHITELIST_ACTION])
         return UBUS_STATUS_INVALID_ARGUMENT;
 
-    action = blobmsg_data(tb[DOMAIN_ACTION]);
-    domain = blobmsg_data(tb[DOMAIN_DOMAIN]);
+    action = blobmsg_data(tb[WHITELIST_ACTION]);
 
-    if (!strcmp(action, "add"))
-        allow_domain(domain);
-    else
+    if (tb[WHITELIST_DOMAIN])
+        domain = blobmsg_data(tb[WHITELIST_DOMAIN]);
+
+    if (tb[WHITELIST_MAC])
+        mac = blobmsg_data(tb[WHITELIST_MAC]);
+
+    if (!strcmp(action, "add")) {
+        if (domain) {
+            allow_domain(domain);
+            save_whitelist("add", "domain", domain);
+        }
+
+        if (mac)
+            save_whitelist("add", "mac", mac);
+    } else if (!strcmp(action, "del")) {
+        if (domain)
+            save_whitelist("del", "domain", domain);
+        if (mac)
+            save_whitelist("del", "mac", mac);
+    } else {
         return UBUS_STATUS_NOT_SUPPORTED;
+    }
 
     return 0;
 }
 
 static const struct ubus_method wifidog_methods[] = {
     UBUS_METHOD("term", serve_term, term_policy),
-    UBUS_METHOD("domain", serve_domain, domain_policy),
+    UBUS_METHOD("whitelist", serve_whitelist, whitelist_policy),
 };
 
 static struct ubus_object_type wifidog_object_type =
