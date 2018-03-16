@@ -144,3 +144,7 @@ The response of the server should be:
 # Contributing
 If you would like to help making [wifidog-ng](https://github.com/zhaojh329/wifidog-ng) better,
 see the [CONTRIBUTING.md](https://github.com/zhaojh329/wifidog-ng/blob/master/CONTRIBUTING.md) file.
+
+# QQ group: 153530783
+
+# If the project is helpful to you, please do not hesitate to star. Thank you!
