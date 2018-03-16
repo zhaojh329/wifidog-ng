@@ -109,7 +109,7 @@ static int save_whitelist(const char *action, const char *option, const char *va
         ptr.o = uci_lookup_option(cursor, s, ptr.option);
 
         uci_foreach_element(&ptr.o->v.list, e) {
-            if (!strcmp(uci_to_option(e)->e.name, value));
+            if (!strcmp(uci_to_option(e)->e.name, value))
                 goto RET;
         }
 
@@ -155,8 +155,10 @@ static int serve_whitelist(struct ubus_context *ctx, struct ubus_object *obj,
         if (mac)
             save_whitelist("add", "mac", mac);
     } else if (!strcmp(action, "del")) {
-        if (domain)
+        if (domain) {
+            deny_domain(domain);
             save_whitelist("del", "domain", domain);
+        }
         if (mac)
             save_whitelist("del", "mac", mac);
     } else {

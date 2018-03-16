@@ -80,11 +80,11 @@ static u32 wifidog_hook(void *priv, struct sk_buff *skb, const struct nf_hook_st
     if ((iph->saddr | ~conf->interface_mask) != conf->interface_broadcast)
         return NF_ACCEPT;
 
-    term = find_term_by_mac(ehdr->h_source);
+    term = find_term_by_mac(ehdr->h_source, true);
     if (likely(term)) {
-        update_term(term);
+        update_term(term, iph->saddr);
     } else {
-        add_term(ehdr->h_source, iph->saddr);
+        return NF_DROP;
     }
 
     /* Accept broadcast */
@@ -169,13 +169,13 @@ static u32 term_statistic_hook(void *priv, struct sk_buff *skb, const struct nf_
         return NF_ACCEPT;
 
     if (from_lan) {
-        term = find_term_by_mac(ehdr->h_source);
+        term = find_term_by_mac(ehdr->h_source, false);
         if (unlikely(!term))
             return NF_ACCEPT;
     } else if (to_lan) {
         struct neighbour *n = __ipv4_neigh_lookup_noref(state->out, daddr);
         if (n) {
-            term = find_term_by_mac(n->ha);
+            term = find_term_by_mac(n->ha, false);
             if (unlikely(!term))
                 return NF_ACCEPT;
         }

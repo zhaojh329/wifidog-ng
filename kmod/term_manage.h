@@ -38,9 +38,8 @@ struct terminal {
 int term_init(struct proc_dir_entry *proc);
 void term_free(struct proc_dir_entry *proc);
 
-struct terminal *find_term_by_mac(const u8 *mac);
-int add_term(u8 *mac, __be32 ip);
-void update_term(struct terminal *term);
+struct terminal *find_term_by_mac(const u8 *mac, bool create);
+void update_term(struct terminal *term, __be32 ip);
 int term_is_allowed(const u8 *mac);
 
 #endif

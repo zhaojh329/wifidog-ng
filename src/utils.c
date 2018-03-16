@@ -109,7 +109,7 @@ int arp_get(const char *ifname, const char *ip, char *dst, int len)
     sock = socket(AF_INET, SOCK_DGRAM, 0);  
     if(sock < 0) {
         ULOG_ERR("socket:%s\n", strerror(errno));  
-        return -1;  
+        return -1;
     }  
   
     if (ioctl(sock, SIOCGARP, &req) < 0) {
@@ -155,7 +155,7 @@ int urlencode(char *buf, int blen, const char *src, int slen)
     return (i == slen) ? len : -1;
 }
 
-int allow_destip(const char *ip)
+static int destip_ctl(const char *ip, bool allow)
 {
     FILE *fp = fopen("/proc/wifidog-ng/ip", "w");
     if (!fp) {
@@ -163,12 +163,22 @@ int allow_destip(const char *ip)
         return -1;
     }
 
-    fprintf(fp, "+%s\n", ip);
+    fprintf(fp, "%c%s\n", allow ? '+' : '-', ip);
     fclose(fp);
 
-    ULOG_INFO("allow destip: %s\n", ip);
+    ULOG_INFO("%s destip: %s\n", ip, allow ? "allow" : "deny");
 
     return 0;
+}
+
+int allow_destip(const char *ip)
+{
+    return destip_ctl(ip, true);
+}
+
+int deny_destip(const char *ip)
+{
+    return destip_ctl(ip, false);
 }
 
 int enable_kmod(const char *interface)
@@ -206,10 +216,11 @@ static void my_resolv_cb(struct hostent *he, void *data)
 {
     char **p;
     char addr_buf[INET_ADDRSTRLEN];
+    bool allow = data;
 
     for (p = he->h_addr_list; *p; p++) {
         inet_ntop(he->h_addrtype, *p, addr_buf, sizeof(addr_buf));
-        allow_destip(addr_buf);
+        destip_ctl(addr_buf, allow);
     }
 }
 
@@ -222,7 +233,20 @@ int allow_domain(const char *domain)
         return 0;
     }
 
-    resolv_start(domain, my_resolv_cb, NULL);
+    resolv_start(domain, my_resolv_cb, (void *)1);
+    return 0;
+}
+
+int deny_domain(const char *domain)
+{
+    int ip[4];
+
+    if (sscanf(domain, "%d.%d.%d.%d", ip + 0, ip + 1, ip + 2, ip + 3) == 4) {
+        deny_destip(domain);
+        return 0;
+    }
+
+    resolv_start(domain, my_resolv_cb, (void *)0);
     return 0;
 }
 
