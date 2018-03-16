@@ -107,12 +107,12 @@ static int save_whitelist(const char *action, const char *option, const char *va
 
     if (!strcmp(action, "add")) {
         ptr.o = uci_lookup_option(cursor, s, ptr.option);
-
-        uci_foreach_element(&ptr.o->v.list, e) {
-            if (!strcmp(uci_to_option(e)->e.name, value))
-                goto RET;
+        if (ptr.o) {
+            uci_foreach_element(&ptr.o->v.list, e) {
+                if (!strcmp(uci_to_option(e)->e.name, value))
+                    goto RET;
+            }
         }
-
         uci_add_list(cursor, &ptr);
     } else {
         uci_del_list(cursor, &ptr);
