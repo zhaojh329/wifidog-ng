@@ -250,7 +250,7 @@ int deny_domain(const char *domain)
     return 0;
 }
 
-int allow_termianl(const char *mac, const char *token, bool temporary)
+static int termianl_ctl(const char *mac, const char *token, char action)
 {
     FILE *fp;
 
@@ -260,28 +260,26 @@ int allow_termianl(const char *mac, const char *token, bool temporary)
         return -1;
     }
 
-    fprintf(fp, "%c%s %s\n", temporary ? '?' : '+', mac, token ? token : "");
+
+    fprintf(fp, "%c%s %s\n", action, mac, token ? token : "");
     fclose(fp);
 
-    ULOG_INFO("allow termianl %s: %s\n", temporary ? "temporary" : "", mac);
+    ULOG_INFO("%c termianl %s: %s\n", action, mac);
 
     return 0;
 }
 
+int allow_termianl(const char *mac, const char *token, bool temporary)
+{
+    return termianl_ctl(mac, token, temporary ? '?' : '+');
+}
+
 int deny_termianl(const char *mac)
 {
-    FILE *fp;
+    return termianl_ctl(mac, "", '-');
+}
 
-    fp = fopen("/proc/wifidog-ng/term", "w");
-    if (!fp) {
-        ULOG_ERR("Kernel module is not loaded\n");
-        return -1;
-    }
-
-    fprintf(fp, "-%s\n", mac);
-    fclose(fp);
-
-    ULOG_INFO("deny termianl: %s\n", mac);
-
-    return 0;
+int whitelist_termianl(const char *mac)
+{
+    return termianl_ctl(mac, "", '!');
 }

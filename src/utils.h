@@ -40,5 +40,6 @@ int disable_kmod();
 
 int allow_termianl(const char *mac, const char *token, bool temporary);
 int deny_termianl(const char *mac);
+int whitelist_termianl(const char *mac);
 
 #endif

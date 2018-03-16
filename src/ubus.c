@@ -152,15 +152,19 @@ static int serve_whitelist(struct ubus_context *ctx, struct ubus_object *obj,
             save_whitelist("add", "domain", domain);
         }
 
-        if (mac)
+        if (mac) {
+            whitelist_termianl(mac);
             save_whitelist("add", "mac", mac);
+        }
     } else if (!strcmp(action, "del")) {
         if (domain) {
             deny_domain(domain);
             save_whitelist("del", "domain", domain);
         }
-        if (mac)
+        if (mac) {
+            deny_termianl(mac);
             save_whitelist("del", "mac", mac);
+        }
     } else {
         return UBUS_STATUS_NOT_SUPPORTED;
     }

@@ -280,14 +280,20 @@ static ssize_t proc_term_write(struct file *file, const char __user *buf, size_t
 
         op = data[0];
 
-        if (op == '+')
+        if (op == '+') {
             term_mark_authed(mac, token);
-        else if (op== '?')
+        } else if (op == '?') {
             term_mark_temppass(mac);
-        else if (op == '-')
+        } else if (op == '-') {
             term_mark_denied(mac);
-        else
+        } else if (op == '!') {
+            struct terminal *term = find_term_by_mac(mac, true);
+            if (term) {
+                term->state = TERM_STATE_AUTHED;
+            }
+        } else {
             pr_err("invalid format: %s\n", data);
+        }
     }
 
 QUIT:
