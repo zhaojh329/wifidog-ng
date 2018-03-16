@@ -72,7 +72,7 @@ enum {
 static const struct blobmsg_policy whitelist_policy[] = {
     [WHITELIST_ACTION] = { .name = "action", .type = BLOBMSG_TYPE_STRING },
     [WHITELIST_DOMAIN] = { .name = "domain", .type = BLOBMSG_TYPE_STRING },
-    [WHITELIST_DOMAIN] = { .name = "mac", .type = BLOBMSG_TYPE_STRING },
+    [WHITELIST_MAC] = { .name = "mac", .type = BLOBMSG_TYPE_STRING },
 };
 
 static int save_whitelist(const char *action, const char *option, const char *value)
