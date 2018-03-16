@@ -155,6 +155,34 @@ int urlencode(char *buf, int blen, const char *src, int slen)
     return (i == slen) ? len : -1;
 }
 
+static int kmod_ctl(const char *interface, bool enable)
+{
+    FILE *fp = fopen("/proc/wifidog-ng/config", "w");
+    if (!fp) {
+        ULOG_ERR("Kernel module is not loaded\n");
+        return -1;
+    }
+
+    if (enable)
+        fprintf(fp, "interface=%s\n", interface);
+
+    fprintf(fp, "enabled=%d\n", enable);
+    fclose(fp);
+
+    ULOG_INFO("%s kmod\n", enable ? "Enable" : "Disable");
+    return 0;
+}
+
+int enable_kmod(const char *interface)
+{
+    return kmod_ctl(interface, true);
+}
+
+int disable_kmod()
+{
+    return kmod_ctl(NULL, false);
+}
+
 static int destip_ctl(const char *ip, bool allow)
 {
     FILE *fp = fopen("/proc/wifidog-ng/ip", "w");
@@ -181,37 +209,6 @@ int deny_destip(const char *ip)
     return destip_ctl(ip, false);
 }
 
-int enable_kmod(const char *interface)
-{
-    FILE *fp = fopen("/proc/wifidog-ng/config", "w");
-    if (!fp) {
-        ULOG_ERR("Kernel module is not loaded\n");
-        return -1;
-    }
-
-    fprintf(fp, "interface=%s\n", interface);
-    fprintf(fp, "enabled=1\n");
-    fclose(fp);
-
-    ULOG_INFO("Enable kmod\n");
-    return 0;
-}
-
-int disable_kmod()
-{
-    FILE *fp = fopen("/proc/wifidog-ng/config", "w");
-    if (!fp) {
-        ULOG_ERR("Kernel module is not loaded\n");
-        return -1;
-    }
-
-    fprintf(fp, "enabled=0\n");
-    fclose(fp);
-
-    ULOG_INFO("Disable kmod\n");
-    return 0;
-}
-
 static void my_resolv_cb(struct hostent *he, void *data)
 {
     char **p;
@@ -224,30 +221,27 @@ static void my_resolv_cb(struct hostent *he, void *data)
     }
 }
 
-int allow_domain(const char *domain)
+static int domain_ctl(const char *domain, bool allow)
 {
     int ip[4];
 
     if (sscanf(domain, "%d.%d.%d.%d", ip + 0, ip + 1, ip + 2, ip + 3) == 4) {
-        allow_destip(domain);
+        destip_ctl(domain, allow);
         return 0;
     }
 
-    resolv_start(domain, my_resolv_cb, (void *)1);
+    resolv_start(domain, my_resolv_cb, (void *)allow);
     return 0;
+}
+
+int allow_domain(const char *domain)
+{
+    return domain_ctl(domain, true);
 }
 
 int deny_domain(const char *domain)
 {
-    int ip[4];
-
-    if (sscanf(domain, "%d.%d.%d.%d", ip + 0, ip + 1, ip + 2, ip + 3) == 4) {
-        deny_destip(domain);
-        return 0;
-    }
-
-    resolv_start(domain, my_resolv_cb, (void *)0);
-    return 0;
+    return domain_ctl(domain, false);
 }
 
 static int termianl_ctl(const char *mac, const char *token, char action)
