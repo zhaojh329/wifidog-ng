@@ -258,7 +258,7 @@ static int termianl_ctl(const char *mac, const char *token, char action)
     fprintf(fp, "%c%s %s\n", action, mac, token ? token : "");
     fclose(fp);
 
-    ULOG_INFO("%c termianl %s: %s\n", action, mac);
+    ULOG_INFO("termianl ctl: %c %s\n", action, mac);
 
     return 0;
 }
