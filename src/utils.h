@@ -28,9 +28,9 @@ int get_iface_mac(const char *ifname, char *dst, int len);
 int arp_get(const char *ifname, const char *ip, char *dst, int len);
 
 int allow_destip(const char *ip);
-int allow_domain(const char *domain);
-
 int deny_destip(const char *ip);
+
+int allow_domain(const char *domain);
 int deny_domain(const char *domain);
 
 int urlencode(char *buf, int blen, const char *src, int slen);

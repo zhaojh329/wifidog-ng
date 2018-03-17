@@ -31,15 +31,14 @@ static int offline_time = -1;
 static void parse_whitelist_domain()
 {
     struct config *conf = get_config();
-    struct whitelist_domain *p = conf->whitelist_domains;
+    struct whitelist_domain *d;
     static bool parsed;
 
     if (parsed)
         return;
 
-    while (p) {
-        allow_domain(p->domain);
-        p = p->next;
+    avl_for_each_element(&conf->whitelist_domains, d, avl) {
+        allow_domain(d->domain);
     }
 
     allow_domain(conf->authserver.host);
@@ -61,23 +60,23 @@ static void check_internet_available_cb(struct hostent *he, void *data)
             enable_kmod(conf->gw_interface);
         }
     } else {
-        struct popular_server *popular_server = data;
+        struct popular_server *p = data;
 
         ULOG_INFO("Internet became not available\n");
 
-        if (popular_server->next) {
-            resolv_start(popular_server->next->hostname, check_internet_available_cb, popular_server->next);
-            return;
-        }
+        if (avl_is_last(&conf->popular_servers, &p->avl)) {
+            offline_time += conf->checkinterval;
 
-        offline_time += conf->checkinterval;
+            if (offline_time / conf->checkinterval > 2) {
+                stop_heartbeat();
+                stop_counters();
+                disable_kmod();
 
-        if (offline_time / conf->checkinterval > 2) {
-            stop_heartbeat();
-            stop_counters();
-            disable_kmod();
-
-            ULOG_INFO("Internet not available too long\n");
+                ULOG_INFO("Internet not available too long\n");
+            }
+        } else {
+            p = avl_next_element(p, avl);
+            resolv_start(p->host, check_internet_available_cb, p);
         }
     }
 }
@@ -85,10 +84,12 @@ static void check_internet_available_cb(struct hostent *he, void *data)
 static void check_internet(struct uloop_timeout *t)
 {
     struct config *conf = get_config();
+    struct popular_server *p;
 
     uloop_timeout_set(t, 1000 * conf->checkinterval);
 
-    resolv_start(conf->popular_servers->hostname, check_internet_available_cb, conf->popular_servers);
+    p = avl_first_element(&conf->popular_servers, p, avl);
+    resolv_start(p->host, check_internet_available_cb, p);
 }
 
 static struct uloop_timeout timeout = {

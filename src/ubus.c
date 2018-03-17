@@ -229,6 +229,8 @@ static bool uci_format_blob(struct blob_attr *v, const char **p)
 
 static int save_authserver(struct blob_attr *options)
 {
+    struct config *conf = get_config();
+    struct auth_server *authserver = &conf->authserver;
     struct uci_context *cursor = uci_alloc_context();
     struct uci_ptr ptr = {
         .package = "wifidog-ng"
@@ -266,6 +268,26 @@ static int save_authserver(struct blob_attr *options)
             ptr.o = NULL;
             ptr.option = blobmsg_name(cur);
             uci_set(cursor, &ptr);
+
+            if (!strcmp(ptr.option, "host")) {
+                deny_domain(authserver->host);
+                alloc_authserver_option(&authserver->host, ptr.value);
+                allow_domain(authserver->host);
+            }
+            else if (!strcmp(ptr.option, "port"))
+                authserver->port = atoi(ptr.value);
+            else if (!strcmp(ptr.option, "path"))
+                alloc_authserver_option(&authserver->path, ptr.value);
+            else if (!strcmp(ptr.option, "login_path"))
+                alloc_authserver_option(&authserver->login_path, ptr.value);
+            else if (!strcmp(ptr.option, "portal_path"))
+                alloc_authserver_option(&authserver->portal_path, ptr.value);
+            else if (!strcmp(ptr.option, "msg_path"))
+                alloc_authserver_option(&authserver->msg_path, ptr.value);
+            else if (!strcmp(ptr.option, "ping_path"))
+                alloc_authserver_option(&authserver->ping_path, ptr.value);
+            else if (!strcmp(ptr.option, "auth_path"))
+                alloc_authserver_option(&authserver->auth_path, ptr.value);
         }
     }
 
@@ -294,6 +316,8 @@ static int serve_authserver(struct ubus_context *ctx, struct ubus_object *obj,
     save_authserver(tb[AUTHSERVER_OPTIONS]);
     ubus_send_reply(ctx, req, b.head);
     blob_buf_free(&b);
+    /* reload config */
+    init_authserver_url();
     return 0;
 }
 

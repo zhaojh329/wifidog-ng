@@ -20,25 +20,29 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#include <avl.h>
+#include <string.h>
+#include <stdlib.h>
+
 struct auth_server {
     int port;
-    const char *host;
-    const char *path;
-    const char *login_path;
-    const char *portal_path;
-    const char *msg_path;
-    const char *ping_path;
-    const char *auth_path;
+    char *host;
+    char *path;
+    char *login_path;
+    char *portal_path;
+    char *msg_path;
+    char *ping_path;
+    char *auth_path;
 };
 
 struct popular_server {
-    char *hostname;
-    struct popular_server *next;
+    struct avl_node avl;
+    char host[0];
 };
 
 struct whitelist_domain {
-    char *domain;
-    struct whitelist_domain *next;
+    struct avl_node avl;
+    char domain[0];
 };
 
 struct config {
@@ -53,18 +57,25 @@ struct config {
     int temppass_time;
 
     struct auth_server authserver;
-    struct popular_server *popular_servers;
-    struct whitelist_domain *whitelist_domains;
+    struct avl_tree popular_servers;
+    struct avl_tree whitelist_domains;
 
-    const char *login_url;
-    const char *auth_url;
-    const char *portal_url;
-    const char *ping_url;
-    const char *msg_url;
+    char *login_url;
+    char *auth_url;
+    char *portal_url;
+    char *ping_url;
+    char *msg_url;
 };
 
 int parse_config();
 
 struct config *get_config();
+int init_authserver_url();
+
+static inline void alloc_authserver_option(char **option, const char *value)
+{
+    free(*option);
+    *option = strdup(value);
+}
 
 #endif

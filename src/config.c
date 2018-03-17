@@ -22,6 +22,7 @@
 #include <uci_blob.h>
 #include <libubox/ulog.h>
 #include <uhttpd/uhttpd.h>
+#include <libubox/avl-cmp.h>
 
 static struct blob_buf b;
 
@@ -197,23 +198,17 @@ const struct uci_blob_param_list popular_server_attr_list = {
     .params = popular_server_attrs,
 };
 
-static void add_popular_server(const char *server)
+int add_popular_server(const char *host)
 {
-    char *hostname;
-    struct popular_server *p;
-
-    p = calloc_a(sizeof(struct popular_server), &hostname, strlen(server) + 1);
-    p->hostname = strcpy(hostname, server);
-
-    if (conf.popular_servers == NULL) {
-        p->next = NULL;
-        conf.popular_servers = p;
-    } else {
-        p->next = conf.popular_servers;
-        conf.popular_servers = p;
+    struct popular_server *p = calloc(1, sizeof(struct popular_server) + strlen(host) + 1);
+    if (!p) {
+        ULOG_ERR("add_popular_server failed:%s\n", strerror(errno));
+        return -1;
     }
+    p->avl.key = strcpy(p->host, host);
+    avl_insert(&conf.popular_servers, &p->avl);
+    return 0;
 }
-
 static void parse_popular_server(struct uci_section *s)
 {
     struct blob_attr *tb[POPULAR_SERVER_ATTR_MAX];
@@ -228,8 +223,12 @@ static void parse_popular_server(struct uci_section *s)
         struct blob_attr *cur;
 
         blobmsg_for_each_attr(cur, tb[POPULAR_SERVER_ATTR_SERVER], rem) {
-            if (blobmsg_type(cur) == BLOBMSG_TYPE_STRING)
-                add_popular_server(blobmsg_data(cur));
+            if (blobmsg_type(cur) == BLOBMSG_TYPE_STRING) {
+                if (add_popular_server(blobmsg_data(cur)) < 0) {
+                    ULOG_ERR("parse_popular_server failed\n");
+                    return;
+                }
+            }
         }
     }
 }
@@ -248,23 +247,6 @@ const struct uci_blob_param_list whitelist_attr_list = {
     .params = whitelist_attrs,
 };
 
-static void add_whitelist_domain(const char *domain)
-{
-    char *tmp;
-    struct whitelist_domain *p;
-
-    p = calloc_a(sizeof(struct whitelist_domain), &tmp, strlen(domain) + 1);
-    p->domain = strcpy(tmp, domain);
-
-    if (conf.whitelist_domains == NULL) {
-        p->next = NULL;
-        conf.whitelist_domains = p;
-    } else {
-        p->next = conf.whitelist_domains;
-        conf.whitelist_domains = p;
-    }
-}
-
 static void parse_whitelist(struct uci_section *s)
 {
     struct blob_attr *tb[WHITELIST_ATTR_MAX];
@@ -280,7 +262,14 @@ static void parse_whitelist(struct uci_section *s)
 
         blobmsg_for_each_attr(cur, tb[WHITELIST_ATTR_DOMAIN], rem) {
             if (blobmsg_type(cur) == BLOBMSG_TYPE_STRING) {
-                add_whitelist_domain(blobmsg_data(cur));
+                const char *domain = blobmsg_data(cur);
+                struct whitelist_domain *d = calloc(1, sizeof(struct whitelist_domain) + strlen(domain) + 1);
+                if (!d) {
+                    ULOG_ERR("parse_whitelist failed:%s\n", strerror(errno));
+                    return;
+                }
+                d->avl.key = strcpy(d->domain, domain);
+                avl_insert(&conf.whitelist_domains, &d->avl);
             }
         }
     }
@@ -304,19 +293,61 @@ static int config_kmod()
     return 0;
 }
 
+int init_authserver_url()
+{
+    struct auth_server *authserver = &conf.authserver;
+    char port[10] = "";
+
+    if (authserver->port != 80)
+        sprintf(port, ":%d", authserver->port);
+
+    free(conf.login_url);
+    if (asprintf(&conf.login_url, "http://%s%s%s%s?gw_address=%s&gw_port=%d&gw_id=%s&ssid=%s",
+        authserver->host, port, authserver->path, authserver->login_path,
+        conf.gw_address, conf.gw_port, conf.gw_id, conf.ssid ? conf.ssid : "") < 0)
+        goto err;
+
+    free(conf.auth_url);
+    if (asprintf(&conf.auth_url, "http://%s%s%s%s?gw_id=%s",
+        authserver->host, port, authserver->path, authserver->auth_path, conf.gw_id) < 0)
+        goto err;
+
+    free(conf.ping_url);
+    if (asprintf(&conf.ping_url, "http://%s%s%s%s?gw_id=%s",
+        authserver->host, port, authserver->path, authserver->ping_path, conf.gw_id) < 0)
+        goto err;
+
+    free(conf.portal_url);
+    if (asprintf(&conf.portal_url, "http://%s%s%s%s?gw_id=%s",
+        authserver->host, port, authserver->path, authserver->portal_path, conf.gw_id) < 0)
+        goto err;
+
+    free(conf.msg_url);
+    if (asprintf(&conf.msg_url, "http://%s%s%s%s?gw_id=%s",
+        authserver->host, port, authserver->path, authserver->msg_path, conf.gw_id) < 0)
+        goto err;
+
+    return 0;
+err:
+    ULOG_ERR("asprintf: %s\n", strerror(errno));
+    return -1;
+}
+
 int parse_config()
 {
     struct uci_context *ctx = uci_alloc_context();
     struct uci_package *p = NULL;
     struct uci_element *e;
-    char buf[128], port[10] = "";
-    struct auth_server *authserver = &conf.authserver;
+    char buf[128];
     
     if (uci_load(ctx, "wifidog-ng", &p) || !p) {
         ULOG_ERR("Load uci config 'wifidog-ng' failed\n");
         uci_free_context(ctx);
         return -1;
     }
+
+    avl_init(&conf.popular_servers, avl_strcmp, false, NULL);
+    avl_init(&conf.whitelist_domains, avl_strcmp, false, NULL);
 
     uci_foreach_element(&p->sections, e) {
         struct uci_section *s = uci_to_section(e);
@@ -330,7 +361,7 @@ int parse_config()
             parse_whitelist(s);
     }
 
-    if (!conf.popular_servers) {
+    if (avl_is_empty(&conf.popular_servers)) {
         add_popular_server("www.baidu.com");
         add_popular_server("www.qq.com");
     }
@@ -350,35 +381,10 @@ int parse_config()
         conf.gw_address = strdup(buf);
     }
     
-    if (authserver->port != 80)
-        sprintf(port, ":%d", authserver->port);
-
-    if (!asprintf((char **)&conf.login_url, "http://%s%s%s%s?gw_address=%s&gw_port=%d&gw_id=%s&ssid=%s",
-        authserver->host, port, authserver->path, authserver->login_path,
-        conf.gw_address, conf.gw_port, conf.gw_id, conf.ssid ? conf.ssid : ""))
-        goto err;
-
-    if (!asprintf((char **)&conf.auth_url, "http://%s%s%s%s?gw_id=%s",
-        authserver->host, port, authserver->path, authserver->auth_path, conf.gw_id))
-        goto err;
-
-    if (!asprintf((char **)&conf.ping_url, "http://%s%s%s%s?gw_id=%s",
-        authserver->host, port, authserver->path, authserver->ping_path, conf.gw_id))
-        goto err;
-
-    if (!asprintf((char **)&conf.portal_url, "http://%s%s%s%s?gw_id=%s",
-        authserver->host, port, authserver->path, authserver->portal_path, conf.gw_id))
-        goto err;
-
-    if (!asprintf((char **)&conf.msg_url, "http://%s%s%s%s?gw_id=%s",
-        authserver->host, port, authserver->path, authserver->msg_path, conf.gw_id))
-        goto err;
+    if (init_authserver_url() < 0)
+        return -1;
 
     return config_kmod();
-
-err:
-    ULOG_ERR("asprintf: %s\n", strerror(errno));
-    return -1;
 }
 
 struct config *get_config()
