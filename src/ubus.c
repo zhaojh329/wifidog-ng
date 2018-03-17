@@ -17,6 +17,8 @@
  * USA
  */
 
+#include <inttypes.h>
+#include <libgen.h>
 #include <libubox/ulog.h>
 #include <libubus.h>
 #include "utils.h"
@@ -25,6 +27,7 @@
 #include "uci.h"
 
 static struct ubus_context *ctx;
+static struct blob_buf b;
 
 enum {
     TERM_ACTION,
@@ -172,9 +175,132 @@ static int serve_whitelist(struct ubus_context *ctx, struct ubus_object *obj,
     return 0;
 }
 
+enum {
+    AUTHSERVER_OPTIONS,
+    __AUTHSERVER_MAX
+};
+
+static const struct blobmsg_policy authserver_policy[] = {
+    [AUTHSERVER_OPTIONS] = { .name = "options", .type = BLOBMSG_TYPE_TABLE }
+};
+
+/*
+ * Format applicable blob value as string and place a pointer to the string
+ * buffer in "p". Uses a static string buffer.
+ */
+static bool uci_format_blob(struct blob_attr *v, const char **p)
+{
+    static char buf[21];
+
+    *p = NULL;
+
+    switch (blobmsg_type(v))
+    {
+    case BLOBMSG_TYPE_STRING:
+        *p = blobmsg_data(v);
+        break;
+
+    case BLOBMSG_TYPE_INT64:
+        snprintf(buf, sizeof(buf), "%"PRIu64, blobmsg_get_u64(v));
+        *p = buf;
+        break;
+
+    case BLOBMSG_TYPE_INT32:
+        snprintf(buf, sizeof(buf), "%u", blobmsg_get_u32(v));
+        *p = buf;
+        break;
+
+    case BLOBMSG_TYPE_INT16:
+        snprintf(buf, sizeof(buf), "%u", blobmsg_get_u16(v));
+        *p = buf;
+        break;
+
+    case BLOBMSG_TYPE_INT8:
+        snprintf(buf, sizeof(buf), "%u", !!blobmsg_get_u8(v));
+        *p = buf;
+        break;
+
+    default:
+        break;
+    }
+
+    return !!*p;
+}
+
+static int save_authserver(struct blob_attr *options)
+{
+    struct uci_context *cursor = uci_alloc_context();
+    struct uci_ptr ptr = {
+        .package = "wifidog-ng"
+    };
+    struct uci_package *p = NULL;
+    struct uci_section *s;
+    struct uci_element *e;
+
+    struct blob_attr *cur;
+    int rem;
+
+    if (uci_load(cursor, ptr.package, &p)) {
+        uci_perror(cursor, "");
+        return cursor->err;
+    }
+
+    uci_foreach_element(&p->sections, e) {
+        s = uci_to_section(e);
+
+        if (!strcmp(s->type, "authserver"))
+            break;
+        s = NULL;
+    }
+
+    if (!s)
+        uci_add_section(cursor, p, "authserver", &s);
+
+    ptr.s = s;
+
+    if (options) {
+        blobmsg_for_each_attr(cur, options, rem) {
+            if (!uci_format_blob(cur, &ptr.value))
+                continue;
+
+            ptr.o = NULL;
+            ptr.option = blobmsg_name(cur);
+            uci_set(cursor, &ptr);
+        }
+    }
+
+    uci_foreach_element(&s->options, e){
+        struct uci_option *o = uci_to_option(e);
+        if (o->type == UCI_TYPE_STRING)
+            blobmsg_add_string(&b, o->e.name, o->v.string);
+    }
+
+    uci_save(cursor, p);
+    uci_commit(cursor, &p, false);
+
+    uci_unload(cursor, p);
+    return 0;
+}
+
+static int serve_authserver(struct ubus_context *ctx, struct ubus_object *obj,
+             struct ubus_request_data *req, const char *method,
+             struct blob_attr *msg)
+{
+    struct blob_attr *tb[__AUTHSERVER_MAX];
+
+    blobmsg_parse(authserver_policy, __AUTHSERVER_MAX, tb, blob_data(msg), blob_len(msg));
+
+    blob_buf_init(&b, 0);
+    save_authserver(tb[AUTHSERVER_OPTIONS]);
+    ubus_send_reply(ctx, req, b.head);
+    blob_buf_free(&b);
+    return 0;
+}
+
 static const struct ubus_method wifidog_methods[] = {
     UBUS_METHOD("term", serve_term, term_policy),
     UBUS_METHOD("whitelist", serve_whitelist, whitelist_policy),
+    UBUS_METHOD("authserver", serve_authserver, authserver_policy),
 };
 
 static struct ubus_object_type wifidog_object_type =
