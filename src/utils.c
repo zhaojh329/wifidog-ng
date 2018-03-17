@@ -215,6 +215,9 @@ static void my_resolv_cb(struct hostent *he, void *data)
     char addr_buf[INET_ADDRSTRLEN];
     bool allow = data;
 
+    if (!he)
+        return;
+
     for (p = he->h_addr_list; *p; p++) {
         inet_ntop(he->h_addrtype, *p, addr_buf, sizeof(addr_buf));
         destip_ctl(addr_buf, allow);
