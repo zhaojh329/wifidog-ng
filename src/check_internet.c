@@ -28,6 +28,23 @@
 
 static int offline_time = -1;
 
+static void parse_whitelist_domain()
+{
+    struct config *conf = get_config();
+    struct whitelist_domain *p = conf->whitelist_domains;
+    static bool parsed;
+
+    if (parsed)
+        return;
+
+    while (p) {
+        allow_domain(p->domain);
+        p = p->next;
+    }
+
+    allow_domain(conf->authserver.host);
+}
+
 static void check_internet_available_cb(struct hostent *he, void *data)
 {
     struct config *conf = get_config();
@@ -40,7 +57,7 @@ static void check_internet_available_cb(struct hostent *he, void *data)
 
             start_heartbeat();
             start_counters();
-            allow_domain(conf->authserver.host);
+            parse_whitelist_domain();
             enable_kmod(conf->gw_interface);
         }
     } else {

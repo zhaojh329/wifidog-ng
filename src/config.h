@@ -36,6 +36,11 @@ struct popular_server {
     struct popular_server *next;
 };
 
+struct whitelist_domain {
+    char *domain;
+    struct whitelist_domain *next;
+};
+
 struct config {
     const char *gw_interface;
     const char *gw_address;
@@ -49,6 +54,7 @@ struct config {
 
     struct auth_server authserver;
     struct popular_server *popular_servers;
+    struct whitelist_domain *whitelist_domains;
 
     const char *login_url;
     const char *auth_url;

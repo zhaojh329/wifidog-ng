@@ -234,6 +234,58 @@ static void parse_popular_server(struct uci_section *s)
     }
 }
 
+enum {
+    WHITELIST_ATTR_DOMAIN,
+    WHITELIST_ATTR_MAX
+};
+
+static const struct blobmsg_policy whitelist_attrs[WHITELIST_ATTR_MAX] = {
+    [WHITELIST_ATTR_DOMAIN] = { .name = "domain", .type = BLOBMSG_TYPE_ARRAY },
+};
+
+const struct uci_blob_param_list whitelist_attr_list = {
+    .n_params = WHITELIST_ATTR_MAX,
+    .params = whitelist_attrs,
+};
+
+static void add_whitelist_domain(const char *domain)
+{
+    char *tmp;
+    struct whitelist_domain *p;
+
+    p = calloc_a(sizeof(struct whitelist_domain), &tmp, strlen(domain) + 1);
+    p->domain = strcpy(tmp, domain);
+
+    if (conf.whitelist_domains == NULL) {
+        p->next = NULL;
+        conf.whitelist_domains = p;
+    } else {
+        p->next = conf.whitelist_domains;
+        conf.whitelist_domains = p;
+    }
+}
+
+static void parse_whitelist(struct uci_section *s)
+{
+    struct blob_attr *tb[WHITELIST_ATTR_MAX];
+
+    blob_buf_init(&b, 0);
+
+    uci_to_blob(&b, s, &whitelist_attr_list);
+    blobmsg_parse(whitelist_attrs, WHITELIST_ATTR_MAX, tb, blob_data(b.head), blob_len(b.head));
+
+    if (tb[WHITELIST_ATTR_DOMAIN]) {
+        int rem;
+        struct blob_attr *cur;
+
+        blobmsg_for_each_attr(cur, tb[WHITELIST_ATTR_DOMAIN], rem) {
+            if (blobmsg_type(cur) == BLOBMSG_TYPE_STRING) {
+                add_whitelist_domain(blobmsg_data(cur));
+            }
+        }
+    }
+}
+
 static int config_kmod()
 {
     FILE *fp = fopen("/proc/wifidog-ng/config", "w");
@@ -274,6 +326,8 @@ int parse_config()
             parse_authserver(s);
         else if (!strcmp(s->type, "popularserver"))
             parse_popular_server(s);
+        else if (!strcmp(s->type, "whitelist"))
+            parse_whitelist(s);
     }
 
     if (!conf.popular_servers) {
