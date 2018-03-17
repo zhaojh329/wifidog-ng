@@ -293,7 +293,7 @@ static int config_kmod()
     return 0;
 }
 
-int init_authserver_url()
+static int init_authserver_url()
 {
     struct auth_server *authserver = &conf.authserver;
     char port[10] = "";
@@ -390,4 +390,46 @@ int parse_config()
 struct config *get_config()
 {
     return &conf;
+}
+
+static inline void alloc_authserver_option(char **option, const char *value)
+{
+    free(*option);
+    *option = strdup(value);
+}
+
+void reinit_config(const char *type, const char *option, const char *value)
+{
+    if (!strcmp(type, "authserver")) {
+        struct auth_server *authserver = &conf.authserver;
+
+        if (!strcmp(option, "host")) {
+            deny_domain(authserver->host);
+            alloc_authserver_option(&authserver->host, value);
+            allow_domain(authserver->host);
+        }
+        else if (!strcmp(option, "port"))
+            authserver->port = atoi(value);
+        else if (!strcmp(option, "path"))
+            alloc_authserver_option(&authserver->path, value);
+        else if (!strcmp(option, "login_path"))
+            alloc_authserver_option(&authserver->login_path, value);
+        else if (!strcmp(option, "portal_path"))
+            alloc_authserver_option(&authserver->portal_path, value);
+        else if (!strcmp(option, "msg_path"))
+            alloc_authserver_option(&authserver->msg_path, value);
+        else if (!strcmp(option, "ping_path"))
+            alloc_authserver_option(&authserver->ping_path, value);
+        else if (!strcmp(option, "auth_path"))
+            alloc_authserver_option(&authserver->auth_path, value);
+
+        init_authserver_url();
+    } else if (!strcmp(type, "gateway")) {
+        if (!strcmp(option, "checkinterval"))
+            conf.checkinterval = atoi(value);
+        else if (!strcmp(option, "temppass_time"))
+            conf.temppass_time = atoi(value);
+        else if (!strcmp(option, "client_timeout"))
+            conf.clienttimeout = atoi(value);
+    }
 }

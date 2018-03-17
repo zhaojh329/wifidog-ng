@@ -70,12 +70,6 @@ struct config {
 int parse_config();
 
 struct config *get_config();
-int init_authserver_url();
-
-static inline void alloc_authserver_option(char **option, const char *value)
-{
-    free(*option);
-    *option = strdup(value);
-}
+void reinit_config(const char *type, const char *option, const char *value);
 
 #endif

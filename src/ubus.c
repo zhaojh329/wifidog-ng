@@ -175,15 +175,6 @@ static int serve_whitelist(struct ubus_context *ctx, struct ubus_object *obj,
     return 0;
 }
 
-enum {
-    AUTHSERVER_OPTIONS,
-    __AUTHSERVER_MAX
-};
-
-static const struct blobmsg_policy authserver_policy[] = {
-    [AUTHSERVER_OPTIONS] = { .name = "options", .type = BLOBMSG_TYPE_TABLE }
-};
-
 /*
  * Format applicable blob value as string and place a pointer to the string
  * buffer in "p". Uses a static string buffer.
@@ -227,10 +218,8 @@ static bool uci_format_blob(struct blob_attr *v, const char **p)
     return !!*p;
 }
 
-static int save_authserver(struct blob_attr *options)
+static int save_config(const char *type, struct blob_attr *options)
 {
-    struct config *conf = get_config();
-    struct auth_server *authserver = &conf->authserver;
     struct uci_context *cursor = uci_alloc_context();
     struct uci_ptr ptr = {
         .package = "wifidog-ng"
@@ -238,7 +227,6 @@ static int save_authserver(struct blob_attr *options)
     struct uci_package *p = NULL;
     struct uci_section *s;
     struct uci_element *e;
-
     struct blob_attr *cur;
     int rem;
 
@@ -249,14 +237,13 @@ static int save_authserver(struct blob_attr *options)
 
     uci_foreach_element(&p->sections, e) {
         s = uci_to_section(e);
-
-        if (!strcmp(s->type, "authserver"))
+        if (!strcmp(s->type, type))
             break;
         s = NULL;
     }
 
     if (!s)
-        uci_add_section(cursor, p, "authserver", &s);
+        return -1;
 
     ptr.s = s;
 
@@ -269,25 +256,7 @@ static int save_authserver(struct blob_attr *options)
             ptr.option = blobmsg_name(cur);
             uci_set(cursor, &ptr);
 
-            if (!strcmp(ptr.option, "host")) {
-                deny_domain(authserver->host);
-                alloc_authserver_option(&authserver->host, ptr.value);
-                allow_domain(authserver->host);
-            }
-            else if (!strcmp(ptr.option, "port"))
-                authserver->port = atoi(ptr.value);
-            else if (!strcmp(ptr.option, "path"))
-                alloc_authserver_option(&authserver->path, ptr.value);
-            else if (!strcmp(ptr.option, "login_path"))
-                alloc_authserver_option(&authserver->login_path, ptr.value);
-            else if (!strcmp(ptr.option, "portal_path"))
-                alloc_authserver_option(&authserver->portal_path, ptr.value);
-            else if (!strcmp(ptr.option, "msg_path"))
-                alloc_authserver_option(&authserver->msg_path, ptr.value);
-            else if (!strcmp(ptr.option, "ping_path"))
-                alloc_authserver_option(&authserver->ping_path, ptr.value);
-            else if (!strcmp(ptr.option, "auth_path"))
-                alloc_authserver_option(&authserver->auth_path, ptr.value);
+            reinit_config(type, ptr.option, ptr.value);
         }
     }
 
@@ -304,31 +273,45 @@ static int save_authserver(struct blob_attr *options)
     return 0;
 }
 
-static int serve_authserver(struct ubus_context *ctx, struct ubus_object *obj,
+enum {
+    CONFIG_TYPE,
+    CONFIG_OPTIONS,
+    __CONFIG_MAX
+};
+
+static const struct blobmsg_policy config_policy[] = {
+    [CONFIG_TYPE] = { .name = "type", .type = BLOBMSG_TYPE_STRING },
+    [CONFIG_OPTIONS] = { .name = "options", .type = BLOBMSG_TYPE_TABLE },
+};
+
+static int serve_config(struct ubus_context *ctx, struct ubus_object *obj,
              struct ubus_request_data *req, const char *method,
              struct blob_attr *msg)
 {
-    struct blob_attr *tb[__AUTHSERVER_MAX];
+    struct blob_attr *tb[__CONFIG_MAX];
 
-    blobmsg_parse(authserver_policy, __AUTHSERVER_MAX, tb, blob_data(msg), blob_len(msg));
+    blobmsg_parse(config_policy, __CONFIG_MAX, tb, blob_data(msg), blob_len(msg));
+
+    if (!tb[CONFIG_TYPE])
+        return UBUS_STATUS_INVALID_ARGUMENT;
 
     blob_buf_init(&b, 0);
-    save_authserver(tb[AUTHSERVER_OPTIONS]);
+
+    if (save_config(blobmsg_data(tb[CONFIG_TYPE]), tb[CONFIG_OPTIONS]) < 0)
+        return UBUS_STATUS_NOT_SUPPORTED;
+
     ubus_send_reply(ctx, req, b.head);
     blob_buf_free(&b);
-    /* reload config */
-    init_authserver_url();
     return 0;
 }
 
 static const struct ubus_method wifidog_methods[] = {
     UBUS_METHOD("term", serve_term, term_policy),
+    UBUS_METHOD("config", serve_config, config_policy),
     UBUS_METHOD("whitelist", serve_whitelist, whitelist_policy),
-    UBUS_METHOD("authserver", serve_authserver, authserver_policy),
 };
 
-static struct ubus_object_type wifidog_object_type =
-    UBUS_OBJECT_TYPE("wifidog", wifidog_methods);
+static struct ubus_object_type wifidog_object_type = UBUS_OBJECT_TYPE("wifidog", wifidog_methods);
 
 static struct ubus_object server_object = {
     .name = "wifidog-ng",
