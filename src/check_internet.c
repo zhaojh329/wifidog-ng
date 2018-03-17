@@ -97,6 +97,5 @@ static struct uloop_timeout timeout = {
 
 void start_check_internet()
 {
-    /* Wait for network interface to be created */
-    uloop_timeout_set(&timeout, 10000);
+    check_internet(&timeout);
 }
