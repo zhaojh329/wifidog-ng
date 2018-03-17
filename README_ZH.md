@@ -146,6 +146,57 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 
 # [测试服务器](https://github.com/zhaojh329/wifidog-ng-authserver)
 
+# 远程配置(首先安装[rtty])
+wifidog-ng提供了UBUS配置接口，借助[rtty]的远程执行命令功能即可实现对wifidog-ng的远程配置
+
+    # ubus -v list wifidog-ng
+    'wifidog-ng' @5903037c
+        "term":{"action":"String","mac":"String"}
+        "whitelist":{"action":"String","domain":"String","mac":"String"}
+
+## 放行客户端
+
+    ubus call wifidog-ng term '{"action":"add", "mac":"11:22:33:44:55:66"}'
+
+## 踢客户端下线
+
+    ubus call wifidog-ng term '{"action":"del", "mac":"11:22:33:44:55:66"}'
+
+## 添加域名白名单
+
+    ubus call wifidog-ng whitelist '{"action":"add", "domain":"qq.com"}'
+
+## 删除域名白名单
+
+    ubus call wifidog-ng whitelist '{"action":"del", "domain":"qq.com"}'
+
+## 添加MAC白名单
+
+    ubus call wifidog-ng whitelist '{"action":"add", "mac":"11:22:33:44:55:66"}'
+
+## 删除MAC白名单
+
+    ubus call wifidog-ng whitelist '{"action":"del", "mac":"11:22:33:44:55:66"}'
+
+## 远程配置示例
+
+    #!/bin/sh
+
+    host="your-rtty-server.com"
+    port=5912
+    devid="test"
+    username="root"
+    password="123456"
+    action="add"
+    domain="www.163.com"
+
+    params="[\"call\", \"wifidog-ng\", \"whitelist\", \"{\\\"action\\\":\\\"$action\\\", \\\"domain\\\":\\\"$domain\\\"}\"]"
+
+    data="{\"devid\":\"$devid\",\"username\":\"$username\",\"password\":\"$password\",\"cmd\":\"ubus\",\"params\":$params}"
+
+    echo $data
+    curl -k "https://$host:$port/cmd" -d "$data"
+
 # 贡献代码
 如果你想帮助[wifidog-ng](https://github.com/zhaojh329/wifidog-ng)变得更好，请参考
 [CONTRIBUTING_ZH.md](https://github.com/zhaojh329/wifidog-ng/blob/master/CONTRIBUTING_ZH.md)。

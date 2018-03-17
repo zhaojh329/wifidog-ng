@@ -149,6 +149,57 @@ The response of the server should be:
 
 # [Test Server](https://github.com/zhaojh329/wifidog-ng-authserver)
 
+# Remote configuration(First install [rtty])
+wifidog-ng provides the UBUS configuration interface and then remotely configuring the wifidog-ng with the help of the remote execution command of the [rtty]
+
+    # ubus -v list wifidog-ng
+    'wifidog-ng' @5903037c
+        "term":{"action":"String","mac":"String"}
+        "whitelist":{"action":"String","domain":"String","mac":"String"}
+
+## Allow client
+
+    ubus call wifidog-ng term '{"action":"add", "mac":"11:22:33:44:55:66"}'
+
+## Kick off client
+
+    ubus call wifidog-ng term '{"action":"del", "mac":"11:22:33:44:55:66"}'
+
+## Add domain whitelist
+
+    ubus call wifidog-ng whitelist '{"action":"add", "domain":"qq.com"}'
+
+## Delete domain whitelist
+
+    ubus call wifidog-ng whitelist '{"action":"del", "domain":"qq.com"}'
+
+## Add macaddr whitelist
+
+    ubus call wifidog-ng whitelist '{"action":"add", "mac":"11:22:33:44:55:66"}'
+
+## Delete macaddr whitelist
+
+    ubus call wifidog-ng whitelist '{"action":"del", "mac":"11:22:33:44:55:66"}'
+
+## Remote configuration example
+
+    #!/bin/sh
+
+    host="your-rtty-server.com"
+    port=5912
+    devid="test"
+    username="root"
+    password="123456"
+    action="add"
+    domain="www.163.com"
+
+    params="[\"call\", \"wifidog-ng\", \"whitelist\", \"{\\\"action\\\":\\\"$action\\\", \\\"domain\\\":\\\"$domain\\\"}\"]"
+
+    data="{\"devid\":\"$devid\",\"username\":\"$username\",\"password\":\"$password\",\"cmd\":\"ubus\",\"params\":$params}"
+
+    echo $data
+    curl -k "https://$host:$port/cmd" -d "$data"
+
 # Contributing
 If you would like to help making [wifidog-ng](https://github.com/zhaojh329/wifidog-ng) better,
 see the [CONTRIBUTING.md](https://github.com/zhaojh329/wifidog-ng/blob/master/CONTRIBUTING.md) file.
