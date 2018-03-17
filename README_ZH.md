@@ -23,6 +23,7 @@
 [libuci]: https://git.openwrt.org/?p=project/uci.git
 [WifiDog]: https://github.com/wifidog/wifidog-gateway
 [c-ares]: https://github.com/c-ares/c-ares
+[rtty]: https://github.com/zhaojh329/rtty
 
 WifiDog-ng一个非常高效的无线热点认证解决方案。
 
@@ -32,6 +33,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 * 使用epoll - 基于[libubox]：单线程，全异步
 * 编写内核模块实现认证管理，而不是使用iptables创建防火墙规则
 * 支持HTTPS：OpenSSL, mbedtls and CyaSSl(wolfssl)
+* 远程配置(借助[rtty])
 * 代码结构清晰，通俗易懂
 
 # 依赖
