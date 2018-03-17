@@ -79,6 +79,12 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 | ------- | ---- | --------- | -------------------------- |
 | server  | list | no        | `www.baidu.com www.qq.com` |
 
+## Section whitelist
+| 名称   | 类型 | 描述                    |
+| ------ | ---- | ---------------------- |
+| domain | list | 可以是一个域名或者ip地址 |
+| mac    | list |                        |
+
 # 协议
 ## 网关心跳
 `http://authserver/wifidog/ping?gw_id=xx&sys_uptime=xx&sys_memfree=xx&sys_load=xx&wifidog_uptime=xx`

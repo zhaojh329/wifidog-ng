@@ -82,6 +82,12 @@ If the install command fails, you can [compile it yourself](/BUILDOPENWRT.md).
 | ------- | ---- | --------- | -------------------------- |
 | server  | list | no        | `www.baidu.com www.qq.com` |
 
+## Section whitelist
+| Name   | Type | Description               | 
+| ------ | ---- | ------------------------- |
+| domain | list | Can be a domain or ipaddr |
+| mac    | list | A macaddr                 |
+
 # Protocol
 ## Gateway heartbeating (Ping Protocol)
 `http://authserver/wifidog/ping?gw_id=xx&sys_uptime=xx&sys_memfree=xx&sys_load=xx&wifidog_uptime=xx`
