@@ -100,6 +100,11 @@ static u32 wifidog_hook(void *priv, struct sk_buff *skb, const struct nf_hook_st
         return NF_ACCEPT;
 
     if ((ct->status & IPS_HIJACKED) || (ct->status & IPS_ALLOWED)) {
+        if ((ct->status & IPS_HIJACKED) && term_is_allowed(ehdr->h_source)) {
+            /* Avoid duplication of authentication */
+            nf_reset(skb);
+            nf_ct_kill(ct);
+        }
         return NF_ACCEPT;
     } else if (ctinfo == IP_CT_NEW && (allowed_dest_ip(iph->daddr) || term_is_allowed(ehdr->h_source))) {
         ct->status |= IPS_ALLOWED;
