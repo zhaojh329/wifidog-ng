@@ -21,7 +21,7 @@
 #define TERM_HASH_SIZE              (1 << 8)
 
 static u32 hash_rnd __read_mostly;
-static rwlock_t term_lock;
+static spinlock_t hash_lock;
 static struct hlist_head term_mac_hash_table[TERM_HASH_SIZE];
 static struct kmem_cache *term_cache __read_mostly;
 
@@ -44,8 +44,7 @@ static int term_mark(const u8 *mac, int state, const char *token)
     u32 hash = term_mac_hash(mac);
     struct timeval tv;
 
-    write_lock_bh(&term_lock);
-    hlist_for_each_entry(term, &term_mac_hash_table[hash], node) {
+    hlist_for_each_entry_rcu(term, &term_mac_hash_table[hash], node) {
         if (ether_addr_equal(term->mac, mac)) {
             term->state = state;
             if (state == TERM_STATE_AUTHED) {
@@ -57,11 +56,9 @@ static int term_mark(const u8 *mac, int state, const char *token)
             } else if (state == TERM_STATE_UNKNOWN) {
                 term_timer_refresh(term, conf->client_timeout);
             }
-            write_unlock_bh(&term_lock);
             return 0;
         }
     }
-    write_unlock_bh(&term_lock);
     return -1;
 }
 
@@ -110,9 +107,7 @@ static void term_timer_timeout(unsigned long ptr)
         return;
     }
 
-    write_lock_bh(&term_lock);
-    hlist_del(&term->node);
-    write_unlock_bh(&term_lock);
+    hlist_del_rcu(&term->node);
     kmem_cache_free(term_cache, term);
 }
 
@@ -122,14 +117,11 @@ struct terminal *find_term_by_mac(const u8 *mac, bool create)
     struct terminal *term;
     u32 hash = term_mac_hash(mac);
 
-    read_lock_bh(&term_lock);
-    hlist_for_each_entry(term, &term_mac_hash_table[hash], node) {
+    hlist_for_each_entry_rcu(term, &term_mac_hash_table[hash], node) {
         if (ether_addr_equal(term->mac, mac)) {
-            read_unlock_bh(&term_lock);
             return term;
         }
     }
-    read_unlock_bh(&term_lock);
 
     if (create) {
         term = term_alloc();
@@ -138,12 +130,11 @@ struct terminal *find_term_by_mac(const u8 *mac, bool create)
         memcpy(term->mac, mac, ETH_ALEN);
 
         setup_timer(&term->timer, term_timer_timeout, (unsigned long)term);
-
-        write_lock_bh(&term_lock);
-        hlist_add_head(&term->node, &term_mac_hash_table[hash]);
-        write_unlock_bh(&term_lock);
-
         term_timer_refresh(term, conf->client_timeout);
+
+        spin_lock(&hash_lock);
+        hlist_add_head_rcu(&term->node, &term_mac_hash_table[hash]);
+        spin_unlock(&hash_lock);
     }
     return NULL;
 }
@@ -168,21 +159,21 @@ static void term_clear(void)
     if (!term_cache)
         return;
 
-    write_lock_bh(&term_lock);
+    spin_lock(&hash_lock);
     for (i = 0; i != TERM_HASH_SIZE; i++) {
         chain = &term_mac_hash_table[i];
         hlist_for_each_entry_safe(pos, next, chain, node) {
-            hlist_del(&pos->node);
+            hlist_del_rcu(&pos->node);
             del_timer(&pos->timer);
             kmem_cache_free(term_cache, pos);
         }
     }
-    write_unlock_bh(&term_lock);
+    spin_unlock(&hash_lock);
 }
 
 static void *term_seq_start(struct seq_file *s, loff_t *pos)
 {
-    read_lock_bh(&term_lock);
+    rcu_read_lock();
 
     if (*pos == 0)
         return SEQ_START_TOKEN;
@@ -209,7 +200,7 @@ static void *term_seq_next(struct seq_file *s, void *v, loff_t *pos)
 
 static void term_seq_stop(struct seq_file *s, void *v)
 {
-    read_unlock_bh(&term_lock);
+    rcu_read_unlock();
 }
 
 static int term_seq_show(struct seq_file *s, void *v)
@@ -315,7 +306,7 @@ int term_init(struct proc_dir_entry *proc)
 
     net_get_random_once(&hash_rnd, sizeof(hash_rnd));
 
-    rwlock_init(&term_lock);
+    spin_lock_init(&hash_lock);
 
     for (i = 0; i < TERM_HASH_SIZE; i++) {
         INIT_HLIST_HEAD(&term_mac_hash_table[i]);
