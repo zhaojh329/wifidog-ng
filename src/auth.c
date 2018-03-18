@@ -30,6 +30,14 @@ struct authserver_request_param {
     char token[33];
 };
 
+static inline void simple_http_send(struct uh_client *cl, const char *str)
+{
+    cl->send_header(cl, 200, "OK", -1);
+    cl->header_end(cl);
+    cl->chunk_printf(cl, str);
+    cl->request_done(cl);
+}
+
 static void authserver_request_cb(void *data, char *content)
 {
     struct config *conf = get_config();
@@ -97,15 +105,12 @@ static void http_callback_404(struct uh_client *cl)
     static char *redirect_html = "<!doctype html><html><body><script type=\"text/javascript\">"
                 "setTimeout(function() {location.href = '%s&ip=%s&mac=%s&url=%s';}, 1);</script></body></html>";
 
-    if (cl->request.method != UH_HTTP_MSG_GET) {
-        cl->request_done(cl);
-        return;
-    }
+    if (cl->request.method != UH_HTTP_MSG_GET)
+        goto done;
 
     if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
         ULOG_ERR("arp_get failed for %s\n", remote_addr);
-        cl->request_done(cl);
-        return;
+        goto done;
     }
     
     snprintf(tmpurl, (sizeof(tmpurl) - 1), "http://%s%s", cl->get_header(cl, "host"), cl->get_url(cl));
@@ -114,6 +119,8 @@ static void http_callback_404(struct uh_client *cl)
     cl->send_header(cl, 200, "OK", -1);
     cl->header_end(cl);
     cl->chunk_printf(cl, redirect_html, conf->login_url, remote_addr, mac, url);
+
+done:
     cl->request_done(cl);
 }
 
@@ -125,10 +132,7 @@ static void http_callback_auth(struct uh_client *cl)
     char mac[18] = "";
 
     if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
-        cl->send_header(cl, 200, "OK", -1);
-        cl->header_end(cl);
-        cl->chunk_printf(cl, "<h1>Failed to retrieve your MAC address</h1>");
-        cl->request_done(cl);
+        simple_http_send(cl, "<h1>Failed to retrieve your MAC address</h1>");
         ULOG_ERR("Failed to retrieve MAC address for ip %s\n", remote_addr);
         return;
     }
@@ -140,11 +144,7 @@ static void http_callback_auth(struct uh_client *cl)
         else
             authserver_request(cl, "login", remote_addr, mac, token);
     } else {
-        cl->send_header(cl, 200, "OK", -1);
-        cl->header_end(cl);
-        cl->chunk_printf(cl, "<h1>Invalid token</h1>");
-        cl->request_done(cl);
-
+        simple_http_send(cl, "<h1>Invalid token</h1>");
         /* cancel possible temppass */
         deny_termianl(mac);
     }
@@ -157,20 +157,19 @@ static void http_callback_temppass(struct uh_client *cl)
     const char *remote_addr = cl->get_peer_addr(cl);
     const char *script = cl->get_var(cl, "script");
 
+    cl->send_header(cl, 200, "OK", -1);
+    cl->header_end(cl);
+
     if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
-        cl->send_header(cl, 200, "OK", -1);
-        cl->header_end(cl);
         cl->chunk_printf(cl, "<h1>Failed to retrieve your MAC address</h1>");
-        cl->request_done(cl);
         ULOG_ERR("Failed to retrieve MAC address for ip %s\n", remote_addr);
-        return;
+        goto done;
     }
 
     allow_termianl(mac, NULL, true);
-
-    cl->send_header(cl, 200, "OK", -1);
-    cl->header_end(cl);
     cl->chunk_printf(cl, "%s", script ? script : "");
+
+done:
     cl->request_done(cl);
 }
 
