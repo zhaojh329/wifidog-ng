@@ -90,7 +90,7 @@ static struct terminal *term_alloc(void)
     struct terminal *term = NULL;
 
     term = kmem_cache_zalloc(term_cache, GFP_ATOMIC);
-    if (term == NULL) {
+    if (!term) {
         pr_err("term_cache: alloc failed\n");
         return NULL;
     }

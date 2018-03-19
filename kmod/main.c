@@ -80,13 +80,6 @@ static u32 wifidog_hook(void *priv, struct sk_buff *skb, const struct nf_hook_st
     if ((iph->saddr | ~conf->interface_mask) != conf->interface_broadcast)
         return NF_ACCEPT;
 
-    term = find_term_by_mac(ehdr->h_source, true);
-    if (likely(term)) {
-        update_term(term, iph->saddr);
-    } else {
-        return NF_DROP;
-    }
-
     /* Accept broadcast */
     if (skb->pkt_type == PACKET_BROADCAST || skb->pkt_type == PACKET_MULTICAST)
         return NF_ACCEPT;
@@ -98,6 +91,13 @@ static u32 wifidog_hook(void *priv, struct sk_buff *skb, const struct nf_hook_st
     ct = nf_ct_get(skb, &ctinfo);
     if (!ct)
         return NF_ACCEPT;
+
+    term = find_term_by_mac(ehdr->h_source, true);
+    if (likely(term)) {
+        update_term(term, iph->saddr);
+    } else {
+        return NF_DROP;
+    }
 
     if ((ct->status & IPS_HIJACKED) || (ct->status & IPS_ALLOWED)) {
         if ((ct->status & IPS_HIJACKED) && term_is_allowed(ehdr->h_source)) {
