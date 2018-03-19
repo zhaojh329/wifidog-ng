@@ -12,8 +12,6 @@
 
 #include "config.h"
 
-#define PROC_DIR_NAME "wifidog-ng"
-
 static struct proc_dir_entry *proc;
 static struct config conf;
 
@@ -169,7 +167,7 @@ int init_config(void)
     return 0;
 
 remove:
-    remove_proc_entry("wifidog", NULL);
+    remove_proc_entry(PROC_DIR_NAME, NULL);
     return ret;
 }
 

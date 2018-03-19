@@ -92,7 +92,7 @@ static u32 wifidog_hook(void *priv, struct sk_buff *skb, const struct nf_hook_st
     if (!ct)
         return NF_ACCEPT;
 
-    term = find_term_by_mac(ehdr->h_source, true);
+    term = find_term_by_mac_lock(ehdr->h_source, true);
     if (likely(term)) {
         update_term(term, iph->saddr);
     } else {

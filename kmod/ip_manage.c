@@ -12,6 +12,8 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/inet.h>
+
+#include "config.h"
 #include "ip_manage.h"
 
 #define TIP_HASH_SIZE 128
@@ -252,7 +254,7 @@ int ip_manage_init(struct proc_dir_entry *proc)
         INIT_HLIST_HEAD(&ipe_hash_table[i]);
 
     if (!proc_create("ip", 0644, proc, &proc_ops)) {
-        pr_err("can't create file /proc/wifidog/ip\n");
+        pr_err("can't create file /proc/"PROC_DIR_NAME"/ip\n");
         ret = -EINVAL;
         goto free_cache;
     }

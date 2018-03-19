@@ -11,6 +11,8 @@
 
 #include <linux/proc_fs.h>
 
+#define PROC_DIR_NAME "wifidog-ng"
+
 struct config {
     int enabled;
     char interface[32];

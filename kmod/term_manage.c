@@ -21,7 +21,7 @@
 #define TERM_HASH_SIZE              (1 << 8)
 
 static u32 hash_rnd __read_mostly;
-static spinlock_t hash_lock;
+static rwlock_t term_lock;
 static struct hlist_head term_mac_hash_table[TERM_HASH_SIZE];
 static struct kmem_cache *term_cache __read_mostly;
 
@@ -37,14 +37,15 @@ static inline void term_timer_refresh(struct terminal *term, u32 timeout)
     mod_timer(&term->timer, jiffies + timeout * HZ);
 }
 
-static int term_mark(const u8 *mac, int state, const char *token)
+static void term_mark(const u8 *mac, int state, const char *token)
 {
     struct config *conf = get_config();
     struct terminal *term;
     u32 hash = term_mac_hash(mac);
     struct timeval tv;
 
-    hlist_for_each_entry_rcu(term, &term_mac_hash_table[hash], node) {
+    write_lock_bh(&term_lock);
+    hlist_for_each_entry(term, &term_mac_hash_table[hash], node) {
         if (ether_addr_equal(term->mac, mac)) {
             term->state = state;
             if (state == TERM_STATE_AUTHED) {
@@ -56,32 +57,37 @@ static int term_mark(const u8 *mac, int state, const char *token)
             } else if (state == TERM_STATE_UNKNOWN) {
                 term_timer_refresh(term, conf->client_timeout);
             }
-            return 0;
         }
     }
-    return -1;
+    write_unlock_bh(&term_lock);
 }
 
-static inline int term_mark_authed(const u8 *mac, const char *token)
+static inline void term_mark_authed(const u8 *mac, const char *token)
 {
-    return term_mark(mac, TERM_STATE_AUTHED, token);
+    term_mark(mac, TERM_STATE_AUTHED, token);
 }
 
-static inline int term_mark_temppass(const u8 *mac)
+static inline void term_mark_temppass(const u8 *mac)
 {
-    return term_mark(mac, TERM_STATE_TEMPPASS, NULL);
+    term_mark(mac, TERM_STATE_TEMPPASS, NULL);
 }
 
-static inline int term_mark_denied(const u8 *mac)
+static inline void term_mark_denied(const u8 *mac)
 {
-    return term_mark(mac, TERM_STATE_UNKNOWN, NULL);
+    term_mark(mac, TERM_STATE_UNKNOWN, NULL);
 }
 
 int term_is_allowed(const u8 *mac)
 {
-    struct terminal *term = find_term_by_mac(mac, false);
-    if (term && (term->state == TERM_STATE_AUTHED || term->state == TERM_STATE_TEMPPASS))
+    struct terminal *term;
+
+    read_lock_bh(&term_lock);
+    term = find_term_by_mac(mac, false);
+    if (term && (term->state == TERM_STATE_AUTHED || term->state == TERM_STATE_TEMPPASS)) {
+        read_unlock_bh(&term_lock);
         return 1;
+    }
+    read_unlock_bh(&term_lock);
     return 0;
 }
 
@@ -98,6 +104,13 @@ static struct terminal *term_alloc(void)
     return term;
 }
 
+static void term_del(struct terminal *term)
+{
+    hlist_del_rcu(&term->node);
+    kmem_cache_free(term_cache, term);
+}
+
+
 static void term_timer_timeout(unsigned long ptr)
 {
     struct terminal *term = (struct terminal *)ptr;
@@ -107,8 +120,39 @@ static void term_timer_timeout(unsigned long ptr)
         return;
     }
 
-    hlist_del_rcu(&term->node);
-    kmem_cache_free(term_cache, term);
+    term_del(term);
+}
+
+struct terminal *find_term_by_mac_lock(const u8 *mac, bool create)
+{
+    struct config *conf = get_config();
+    struct terminal *term = NULL;
+    u32 hash = term_mac_hash(mac);
+
+    read_lock_bh(&term_lock);
+    hlist_for_each_entry_rcu(term, &term_mac_hash_table[hash], node) {
+        if (ether_addr_equal(term->mac, mac)) {
+            read_unlock_bh(&term_lock);
+            return term;
+        }
+    }
+    read_unlock_bh(&term_lock);
+
+    if (create) {
+        term = term_alloc();
+        if (!term)
+            return ERR_PTR(-ENOMEM);
+
+        memcpy(term->mac, mac, ETH_ALEN);
+        setup_timer(&term->timer, term_timer_timeout, (unsigned long)term);
+        term_timer_refresh(term, conf->client_timeout);
+
+        write_lock_bh(&term_lock);
+        hlist_add_head(&term->node, &term_mac_hash_table[hash]);
+        write_unlock_bh(&term_lock);
+        return term;
+    }
+    return NULL;
 }
 
 struct terminal *find_term_by_mac(const u8 *mac, bool create)
@@ -117,24 +161,21 @@ struct terminal *find_term_by_mac(const u8 *mac, bool create)
     struct terminal *term;
     u32 hash = term_mac_hash(mac);
 
-    hlist_for_each_entry_rcu(term, &term_mac_hash_table[hash], node) {
-        if (ether_addr_equal(term->mac, mac)) {
+    hlist_for_each_entry(term, &term_mac_hash_table[hash], node) {
+        if (ether_addr_equal(term->mac, mac))
             return term;
-        }
     }
 
     if (create) {
         term = term_alloc();
         if (!term)
             return ERR_PTR(-ENOMEM);
-        memcpy(term->mac, mac, ETH_ALEN);
 
+        memcpy(term->mac, mac, ETH_ALEN);
         setup_timer(&term->timer, term_timer_timeout, (unsigned long)term);
         term_timer_refresh(term, conf->client_timeout);
-
-        spin_lock(&hash_lock);
-        hlist_add_head_rcu(&term->node, &term_mac_hash_table[hash]);
-        spin_unlock(&hash_lock);
+        hlist_add_head(&term->node, &term_mac_hash_table[hash]);
+        return term;
     }
     return NULL;
 }
@@ -159,21 +200,20 @@ static void term_clear(void)
     if (!term_cache)
         return;
 
-    spin_lock(&hash_lock);
+    write_lock_bh(&term_lock);
     for (i = 0; i != TERM_HASH_SIZE; i++) {
         chain = &term_mac_hash_table[i];
         hlist_for_each_entry_safe(pos, next, chain, node) {
-            hlist_del_rcu(&pos->node);
             del_timer(&pos->timer);
-            kmem_cache_free(term_cache, pos);
+            term_del(pos);
         }
     }
-    spin_unlock(&hash_lock);
+    write_unlock_bh(&term_lock);
 }
 
 static void *term_seq_start(struct seq_file *s, loff_t *pos)
 {
-    rcu_read_lock();
+    read_lock_bh(&term_lock);
 
     if (*pos == 0)
         return SEQ_START_TOKEN;
@@ -200,7 +240,7 @@ static void *term_seq_next(struct seq_file *s, void *v, loff_t *pos)
 
 static void term_seq_stop(struct seq_file *s, void *v)
 {
-    rcu_read_unlock();
+    read_unlock_bh(&term_lock);
 }
 
 static int term_seq_show(struct seq_file *s, void *v)
@@ -278,10 +318,14 @@ static ssize_t proc_term_write(struct file *file, const char __user *buf, size_t
         } else if (op == '-') {
             term_mark_denied(mac);
         } else if (op == '!') {
-            struct terminal *term = find_term_by_mac(mac, true);
+            struct terminal *term;
+
+            write_lock_bh(&term_lock);
+            term = find_term_by_mac(mac, true);
             if (term) {
                 term->state = TERM_STATE_AUTHED;
             }
+            write_unlock_bh(&term_lock);
         } else {
             pr_err("invalid format: %s\n", data);
         }
@@ -306,7 +350,7 @@ int term_init(struct proc_dir_entry *proc)
 
     net_get_random_once(&hash_rnd, sizeof(hash_rnd));
 
-    spin_lock_init(&hash_lock);
+    rwlock_init(&term_lock);
 
     for (i = 0; i < TERM_HASH_SIZE; i++) {
         INIT_HLIST_HEAD(&term_mac_hash_table[i]);
@@ -317,7 +361,7 @@ int term_init(struct proc_dir_entry *proc)
         return -ENOMEM;
 
     if (!proc_create("term", 0644, proc, &proc_term_ops)) {
-        pr_err("can't create file /proc/wifidog/term\n");
+        pr_err("can't create file /proc/"PROC_DIR_NAME"/term\n");
         ret = -EINVAL;
         goto free_cache;
     }
