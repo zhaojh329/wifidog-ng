@@ -101,9 +101,8 @@ static void http_callback_404(struct uh_client *cl)
     struct config *conf = get_config();
     const char *remote_addr = cl->get_peer_addr(cl);
     char mac[18] = "";
-    static char tmpurl[2048] = "", url[8192] = "";
     static char *redirect_html = "<!doctype html><html><body><script type=\"text/javascript\">"
-                "setTimeout(function() {location.href = '%s&ip=%s&mac=%s&url=%s';}, 1);</script></body></html>";
+                "setTimeout(function() {location.href = '%s&ip=%s&mac=%s';}, 1);</script></body></html>";
 
     if (cl->request.method != UH_HTTP_MSG_GET)
         goto done;
@@ -113,12 +112,9 @@ static void http_callback_404(struct uh_client *cl)
         goto done;
     }
     
-    snprintf(tmpurl, (sizeof(tmpurl) - 1), "http://%s%s", cl->get_header(cl, "host"), cl->get_url(cl));
-    urlencode(url, sizeof(url), tmpurl, strlen(tmpurl));
-
     cl->send_header(cl, 200, "OK", -1);
     cl->header_end(cl);
-    cl->chunk_printf(cl, redirect_html, conf->login_url, remote_addr, mac, url);
+    cl->chunk_printf(cl, redirect_html, conf->login_url, remote_addr, mac);
 
 done:
     cl->request_done(cl);

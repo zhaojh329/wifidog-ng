@@ -94,7 +94,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 认证服务器应返回：Pong
 
 ## 登录
-`http://authserver/wifidog/login?gw_address=xx&gw_port=xx&gw_id=xx&ip=xx&mac=xx&ssid=xx&url=xx`
+`http://authserver/wifidog/login?gw_address=xx&gw_port=xx&gw_id=xx&ip=xx&mac=xx&ssid=xx`
 
 ## 认证
 `http://gw_address:gw_port/wifidog/auth?token=xx`

@@ -97,7 +97,7 @@ If the install command fails, you can [compile it yourself](/BUILDOPENWRT.md).
 To this the auth server is expected to respond with an http message containing the word "Pong".
 
 ## Login
-`http://authserver/wifidog/login?gw_address=xx&gw_port=xx&gw_id=xx&ip=xx&mac=xx&ssid=xx&url=xx`
+`http://authserver/wifidog/login?gw_address=xx&gw_port=xx&gw_id=xx&ip=xx&mac=xx&ssid=xx`
 
 ## Auth
 `http://gw_address:gw_port/wifidog/auth?token=xx`
