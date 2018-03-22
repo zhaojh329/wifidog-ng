@@ -23,12 +23,7 @@
 #include "utils.h"
 #include "config.h"
 #include "http.h"
-
-struct authserver_request_param {
-    bool login;
-    struct uh_client *cl;
-    char token[33];
-};
+#include "term.h"
 
 static inline void simple_http_send(struct uh_client *cl, const char *str)
 {
@@ -38,19 +33,14 @@ static inline void simple_http_send(struct uh_client *cl, const char *str)
     cl->request_done(cl);
 }
 
-static void authserver_request_cb(void *data, char *content)
+static void authserver_request_login_cb(void *data, char *content)
 {
     struct config *conf = get_config();
-    struct authserver_request_param *param = data;
-    struct uh_client *cl;
+    struct uh_client *cl = data;
     const char *remote_addr;
     char mac[18] = "";
     int code = -1;
 
-    if (!param) /* For logout */
-        return;
-
-    cl = param->cl;
     remote_addr = cl->get_peer_addr(cl);
 
     if (arp_get(conf->gw_interface, remote_addr, mac, sizeof(mac)) < 0) {
@@ -67,33 +57,27 @@ static void authserver_request_cb(void *data, char *content)
     sscanf(content, "Auth: %d", &code);
 
     if (code == 1) {
-        allow_termianl(mac, param->token, false);
+        auth_term_by_mac(mac);
         cl->redirect(cl, 302, conf->portal_url);
-        free(param);
         return;
     } else {
         cl->redirect(cl, 302, conf->msg_url);
-        free(param);
         return;
     }
 
 deny:
-    deny_termianl(mac);
-    free(param);
+    del_term_by_mac(mac);
 }
 
-void authserver_request(void *data, const char *type, const char *ip, const char *mac, const char *token)
+void authserver_request(void *data, int type, const char *ip, const char *mac, const char *token)
 {
     struct config *conf = get_config();
-    struct authserver_request_param *param = NULL;
 
-    if (!strcmp(type, "login")) {
-        param = calloc(1, sizeof(struct authserver_request_param));
-        strcpy(param->token, token);
-        param->cl = data;
-    }
-
-    httpget(authserver_request_cb, param, "%s&stage=%s&ip=%s&mac=%s&token=%s", conf->auth_url, type, ip, mac, token);
+    if (type == AUTH_REQUEST_TYPE_LOGIN)
+        httpget(authserver_request_login_cb, data, "%s&stage=login&ip=%s&mac=%s&token=%s",
+            conf->auth_url, ip, mac, token);
+    else if (type == AUTH_REQUEST_TYPE_LOGOUT)
+        httpget(NULL, NULL, "%s&stage=logout&ip=%s&mac=%s&token=%s", conf->auth_url, ip, mac, token);
 }
 
 static void http_callback_404(struct uh_client *cl)
@@ -135,10 +119,16 @@ static void http_callback_auth(struct uh_client *cl)
 
     if (token && *token) {
         const char *logout = cl->get_var(cl, "logout");
-        if (logout)
-            authserver_request(cl, "logout", remote_addr, mac, token);
-        else
-            authserver_request(cl, "login", remote_addr, mac, token);
+        if (logout) {
+            authserver_request(NULL, AUTH_REQUEST_TYPE_LOGOUT, remote_addr, mac, token);
+        } else {
+            struct terminal *term = term_new(mac, remote_addr, token);
+            if (!term) {
+                simple_http_send(cl, "<h1>System error</h1>");
+                return;
+            }
+            authserver_request(cl, AUTH_REQUEST_TYPE_LOGIN, remote_addr, mac, token);
+        }
     } else {
         simple_http_send(cl, "<h1>Invalid token</h1>");
         /* cancel possible temppass */
@@ -162,7 +152,7 @@ static void http_callback_temppass(struct uh_client *cl)
         goto done;
     }
 
-    allow_termianl(mac, NULL, true);
+    allow_termianl(mac, true);
     cl->chunk_printf(cl, "%s", script ? script : "");
 
 done:

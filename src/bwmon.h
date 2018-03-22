@@ -17,28 +17,10 @@
  * USA
  */
 
-#ifndef _UTILS_H
-#define _UTILS_H
+#ifndef _BWMON_H
+#define _BWMON_H
 
-#include <stdint.h>
-#include <stdbool.h>
-
-int get_iface_ip(const char *ifname, char *dst, int len);
-int get_iface_mac(const char *ifname, char *dst, int len);
-int arp_get(const char *ifname, const char *ip, char *dst, int len);
-
-void allow_destip(const char *ip);
-void deny_destip(const char *ip);
-
-void allow_domain(const char *domain);
-void deny_domain(const char *domain);
-
-int urlencode(char *buf, int blen, const char *src, int slen);
-
-int enable_kmod(const char *interface);
-int disable_kmod();
-
-void allow_termianl(const char *mac, bool temporary);
-void deny_termianl(const char *mac);
+int bwmon_init(const char *ifname);
+void bwmon_deinit();
 
 #endif

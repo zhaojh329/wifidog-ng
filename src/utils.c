@@ -33,6 +33,8 @@
 
 #include "utils.h"
 #include "resolv.h"
+#include "ipset.h"
+#include "config.h"
 
 int get_iface_ip(const char *ifname, char *dst, int len)
 {
@@ -183,30 +185,24 @@ int disable_kmod()
     return kmod_ctl(NULL, false);
 }
 
-static int destip_ctl(const char *ip, bool allow)
+static void destip_ctl(const char *ip, bool allow)
 {
-    FILE *fp = fopen("/proc/wifidog-ng/ip", "w");
-    if (!fp) {
-        ULOG_ERR("Kernel module is not loaded\n");
-        return -1;
-    }
-
-    fprintf(fp, "%c%s\n", allow ? '+' : '-', ip);
-    fclose(fp);
+    if (allow)
+        ipset_add("wifidog-ng-ip", ip, 0);
+    else
+        ipset_del("wifidog-ng-ip", ip);
 
     ULOG_INFO("%s destip: %s\n", ip, allow ? "allow" : "deny");
-
-    return 0;
 }
 
-int allow_destip(const char *ip)
+void allow_destip(const char *ip)
 {
-    return destip_ctl(ip, true);
+    destip_ctl(ip, true);
 }
 
-int deny_destip(const char *ip)
+void deny_destip(const char *ip)
 {
-    return destip_ctl(ip, false);
+    destip_ctl(ip, false);
 }
 
 static void my_resolv_cb(struct hostent *he, void *data)
@@ -224,59 +220,38 @@ static void my_resolv_cb(struct hostent *he, void *data)
     }
 }
 
-static int domain_ctl(const char *domain, bool allow)
+static void domain_ctl(const char *domain, bool allow)
 {
     int ip[4];
 
     if (sscanf(domain, "%d.%d.%d.%d", ip + 0, ip + 1, ip + 2, ip + 3) == 4) {
         destip_ctl(domain, allow);
-        return 0;
+        return;
     }
 
     resolv_start(domain, my_resolv_cb, (void *)allow);
-    return 0;
 }
 
-int allow_domain(const char *domain)
+void allow_domain(const char *domain)
 {
-    return domain_ctl(domain, true);
+    domain_ctl(domain, true);
 }
 
-int deny_domain(const char *domain)
+void deny_domain(const char *domain)
 {
-    return domain_ctl(domain, false);
+    domain_ctl(domain, false);
 }
 
-static int termianl_ctl(const char *mac, const char *token, char action)
+void allow_termianl(const char *mac, bool temporary)
 {
-    FILE *fp;
-
-    fp = fopen("/proc/wifidog-ng/term", "w");
-    if (!fp) {
-        ULOG_ERR("fopen:%s\n", strerror(errno));
-        return -1;
-    }
-
-
-    fprintf(fp, "%c%s %s\n", action, mac, token ? token : "");
-    fclose(fp);
-
-    ULOG_INFO("termianl ctl: %c %s\n", action, mac);
-
-    return 0;
+    struct config *conf = get_config();
+    
+    ipset_add("wifidog-ng-mac", mac, temporary ? conf->temppass_time : 0);
+    ULOG_INFO("allow termianl: %s\n", mac);
 }
 
-int allow_termianl(const char *mac, const char *token, bool temporary)
+void deny_termianl(const char *mac)
 {
-    return termianl_ctl(mac, token, temporary ? '?' : '+');
-}
-
-int deny_termianl(const char *mac)
-{
-    return termianl_ctl(mac, "", '-');
-}
-
-int whitelist_termianl(const char *mac)
-{
-    return termianl_ctl(mac, "", '!');
+    ipset_del("wifidog-ng-mac", mac);
+    ULOG_INFO("deny termianl: %s\n", mac);
 }

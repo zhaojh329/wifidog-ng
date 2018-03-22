@@ -17,8 +17,7 @@
  * USA
  */
 
-#include <sys/sysinfo.h>
-#include <uhttpd/uhttpd.h>
+#include <time.h>
 #include <libubox/ulog.h>
 #include <libubox/utils.h>
 #include <libubox/blobmsg_json.h>
@@ -28,6 +27,7 @@
 #include "auth.h"
 #include "utils.h"
 #include "config.h"
+#include "term.h"
 
 enum {
     COUNTERS_RESP,
@@ -87,7 +87,7 @@ static void counters_cb(void *data, char *body)
                 if (tb[COUNTERS_RESP_AUTH] && !blobmsg_get_u32(tb[COUNTERS_RESP_AUTH])) {
                     const char *mac = blobmsg_data(tb[COUNTERS_RESP_MAC]);
                     ULOG_INFO("Auth server resp deny for %s\n", mac);
-                    deny_termianl(mac);
+                    del_term_by_mac(mac);
                 }
             }
         }
@@ -98,65 +98,35 @@ static void counters_cb(void *data, char *body)
 
 static void counters(struct uloop_timeout *t)
 {
-    FILE *fp = NULL;
-    char buf[1024], *p, *mac, *ip, *rx, *tx, *uptime, *state, *token;
     struct config *conf = get_config();
-    struct blob_buf b;
+    struct terminal *term, *ptr;
+    struct blob_buf b = { };
+    time_t now = time(NULL);
     void *tbl, *array;
+    char *p;
 
     uloop_timeout_set(t, 1000 * conf->checkinterval);
 
-    fp = fopen("/proc/wifidog-ng/term", "r");
-    if (!fp) {
-        ULOG_ERR("fopen:%s\n", strerror(errno));
-        return;
-    }
-
-    memset(&b, 0, sizeof(b));
     blobmsg_buf_init(&b);
 
     array = blobmsg_open_array(&b, "counters");
 
-    while (1) {
-        if (!fgets(buf, sizeof(buf), fp))
-            break;
-
-        if (buf[0] == 'M')
+    avl_for_each_element_safe(&term_tree, term, avl, ptr) {
+        if (!(term->flag & TERM_FLAG_AUTHED))
             continue;
 
-        p = buf;
+        tbl = blobmsg_open_table(&b, "");
+        blobmsg_add_string(&b, "ip", term->ip);
+        blobmsg_add_string(&b, "mac", term->mac);
+        blobmsg_add_string(&b, "token", term->token);
+        blobmsg_add_u32(&b, "uptime", now - term->auth_time);
+        blobmsg_add_u32(&b, "incoming", term->rx);
+        blobmsg_add_u32(&b, "outgoing", term->tx);
+        blobmsg_close_table(&b, tbl);
 
-        mac = strtok(p, " ");
-        ip = strtok(NULL, " ");
-        rx = strtok(NULL, " ");
-        tx = strtok(NULL, " ");
-        uptime = strtok(NULL, " ");
-        state = strtok(NULL, " ");
-        token = strtok(NULL, " ");
-
-        if (!token || *token == 0)
-            continue;
-
-        p = strrchr(token, '\n');
-        if (p)
-            *p = 0;
-
-        if (state[0] == '3') {
-            ULOG_INFO("Client(%s) timeout\n", mac);
-            authserver_request(NULL, "logout", ip, mac, token);
-            deny_termianl(mac);
-            continue;
-        }
-
-        if (state[0] == '2') {
-            tbl = blobmsg_open_table(&b, "");
-            blobmsg_add_string(&b, "ip", ip);
-            blobmsg_add_string(&b, "mac", mac);
-            blobmsg_add_string(&b, "token", token);
-            blobmsg_add_string(&b, "uptime", uptime);
-            blobmsg_add_u64(&b, "incoming", atoll(rx));
-            blobmsg_add_u64(&b, "outgoing", atoll(tx));
-            blobmsg_close_table(&b, tbl);
+        if (term->flag & TERM_FLAG_TIMEOUT) {
+            authserver_request(NULL, AUTH_REQUEST_TYPE_LOGOUT, term->ip, term->mac, term->token);
+            del_term(term);
         }
     }
 

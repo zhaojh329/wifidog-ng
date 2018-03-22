@@ -24,6 +24,8 @@
 [WifiDog]: https://github.com/wifidog/wifidog-gateway
 [c-ares]: https://github.com/c-ares/c-ares
 [rtty]: https://github.com/zhaojh329/rtty
+[ipset]: http://ipset.netfilter.org
+[libpcap]: http://www.us.tcpdump.org
 
 Next generation [WifiDog]
 
@@ -34,7 +36,7 @@ embedded linux(LEDE/Openwrt) system.
 
 # Features
 * Use epoll - Based on [libubox]: Single threaded, Fully asynchronous, No blocking operation at all
-* Writing kernel module to implement authentication management instead of using iptables to create firewall rules
+* Use ipset and writing kernel module to implement authentication management instead of using iptables to create firewall rules
 * Support HTTPS: OpenSSL, mbedtls and CyaSSl(wolfssl)
 * Remote configuration(With the help of [rtty])
 * Code structure is concise and understandable
@@ -45,6 +47,8 @@ embedded linux(LEDE/Openwrt) system.
 * [libuclient]
 * [libuci]
 * [c-ares]
+* [ipset]
+* [libpcap]
 
 # Install on OpenWrt
     opkg update
@@ -155,6 +159,7 @@ wifidog-ng provides the UBUS configuration interface and then remotely configuri
     # ubus -v list wifidog-ng
     'wifidog-ng' @5903037c
         "term":{"action":"String","mac":"String"}
+        "config":{"type":"String","options":"Table"}
         "whitelist":{"action":"String","domain":"String","mac":"String"}
 
 ## Allow client
@@ -180,6 +185,10 @@ wifidog-ng provides the UBUS configuration interface and then remotely configuri
 ## Delete macaddr whitelist
 
     ubus call wifidog-ng whitelist '{"action":"del", "mac":"11:22:33:44:55:66"}'
+
+## Show terminal list
+
+    ubus call wifidog-ng term '{"action":"show"}'
 
 ## Remote configuration example
 

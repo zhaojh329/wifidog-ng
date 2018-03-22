@@ -29,6 +29,9 @@
 #include "utils.h"
 #include "resolv.h"
 #include "config.h"
+#include "ipset.h"
+#include "term.h"
+#include "bwmon.h"
 #include "check_internet.h"
 
 static void usage(const char *prog)
@@ -43,6 +46,7 @@ int main(int argc, char **argv)
 {
     int opt;
     bool verbose = false;
+    struct config *conf = get_config();
 
     while ((opt = getopt(argc, argv, "v")) != -1) {
         switch (opt) {
@@ -62,7 +66,13 @@ int main(int argc, char **argv)
     if (parse_config())
         return -1;
     
+    if (ipset_init() < 0)
+        return -1;
+
+    term_init();
+
     uloop_init();
+
 
     resolv_init();
 
@@ -71,10 +81,14 @@ int main(int argc, char **argv)
 
     wifidog_ubus_init();
     start_check_internet();
+    bwmon_init(conf->gw_interface);
 
     uloop_run();
 
 EXIT:
+    bwmon_deinit();
+    ipset_deinit();
+    term_deinit();
     resolv_shutdown();
     uloop_done();
     ULOG_INFO("wifidog-ng exit.\n");

@@ -55,14 +55,11 @@ static int proc_config_show(struct seq_file *s, void *v)
 {
     seq_printf(s, "enabled(RW) = %d\n", conf.enabled);
     seq_printf(s, "interface(RW) = %s\n", conf.interface);
-    seq_printf(s, "ifindex(RO) = %d\n", conf.interface_ifindex);
     seq_printf(s, "ipaddr(RO) = %pI4\n", &conf.interface_ipaddr);
     seq_printf(s, "netmask(RO) = %pI4\n", &conf.interface_mask);
     seq_printf(s, "broadcast(RO) = %pI4\n", &conf.interface_broadcast);
     seq_printf(s, "port(RW) = %d\n", conf.port);
     seq_printf(s, "ssl_port(RW) = %d\n", conf.ssl_port);
-    seq_printf(s, "client_timeout(RW) = %d\n", conf.client_timeout);
-    seq_printf(s, "temppass_time(RW) = %d\n", conf.temppass_time);
 
     return 0;
 }
@@ -113,10 +110,6 @@ static ssize_t proc_config_write(struct file *file, const char __user *buf, size
             conf.port = simple_strtol(value, NULL, 0);
         } else if (!strcmp(key, "ssl_port")) {
             conf.ssl_port = simple_strtol(value, NULL, 0);
-        } else if (!strcmp(key, "client_timeout")) {
-            conf.client_timeout = simple_strtol(value, NULL, 0);
-        } else if (!strcmp(key, "temppass_time")) {
-            conf.temppass_time = simple_strtol(value, NULL, 0);
         }
 
         key = delim;
@@ -148,8 +141,6 @@ int init_config(void)
     conf.interface_ifindex= -1;
     conf.port = 2060;
     conf.ssl_port = 8443;
-    conf.client_timeout = 60;
-    conf.temppass_time = 30;
     strcpy(conf.interface, "br-lan");
 
     proc = proc_mkdir(PROC_DIR_NAME, NULL);
@@ -180,9 +171,4 @@ void deinit_config(void)
 struct config *get_config(void)
 {
     return &conf;
-}
-
-struct proc_dir_entry *get_proc_dir_entry(void)
-{
-    return proc;
 }

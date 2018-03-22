@@ -5,7 +5,7 @@ os:
 
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y libjson-c-dev liblua5.1-0-dev libc-ares-dev
+  - sudo apt-get install -y libjson-c-dev liblua5.1-0-dev libc-ares-dev libipset-dev libpcap-dev
   - sudo apt-get remove libssl-dev
 
 install:

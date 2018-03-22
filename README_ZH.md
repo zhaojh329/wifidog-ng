@@ -24,6 +24,8 @@
 [WifiDog]: https://github.com/wifidog/wifidog-gateway
 [c-ares]: https://github.com/c-ares/c-ares
 [rtty]: https://github.com/zhaojh329/rtty
+[ipset]: http://ipset.netfilter.org
+[libpcap]: http://www.us.tcpdump.org
 
 WifiDog-ng一个非常高效的无线热点认证解决方案。
 
@@ -31,7 +33,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 
 # 特性
 * 使用epoll - 基于[libubox]：单线程，全异步
-* 编写内核模块实现认证管理，而不是使用iptables创建防火墙规则
+* 使用ipset以及编写内核模块实现认证管理，而不是使用iptables创建防火墙规则
 * 支持HTTPS：OpenSSL, mbedtls and CyaSSl(wolfssl)
 * 远程配置(借助[rtty])
 * 代码结构清晰，通俗易懂
@@ -42,6 +44,8 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 * [libuclient]
 * [libuci]
 * [c-ares]
+* [ipset]
+* [libpcap]
 
 # 安装到OpenWRT
     opkg update
@@ -152,6 +156,7 @@ wifidog-ng提供了UBUS配置接口，借助[rtty]的远程执行命令功能即
     # ubus -v list wifidog-ng
     'wifidog-ng' @5903037c
         "term":{"action":"String","mac":"String"}
+        "config":{"type":"String","options":"Table"}
         "whitelist":{"action":"String","domain":"String","mac":"String"}
 
 ## 放行客户端
@@ -177,6 +182,10 @@ wifidog-ng提供了UBUS配置接口，借助[rtty]的远程执行命令功能即
 ## 删除MAC白名单
 
     ubus call wifidog-ng whitelist '{"action":"del", "mac":"11:22:33:44:55:66"}'
+
+## 查看终端列表
+
+    ubus call wifidog-ng term '{"action":"show"}'
 
 ## 远程配置示例
 

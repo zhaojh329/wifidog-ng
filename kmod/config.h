@@ -22,13 +22,10 @@ struct config {
     __be32 interface_broadcast;
     int port;
     int ssl_port;
-    int temppass_time;
-    int client_timeout;
 };
 
 int init_config(void);
 void deinit_config(void);
 struct config *get_config(void);
-struct proc_dir_entry *get_proc_dir_entry(void);
 
 #endif

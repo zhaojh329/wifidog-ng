@@ -10,10 +10,10 @@ find_package(Libubox REQUIRED)
 find_package(Libuhttpd REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${LIBUHTTPD_INCLUDE_DIR} ${LIBUBOX_INCLUDE_DIR})
-set(EXTRA_LIBS ${LIBUHTTPD_LIBRARY} ${LIBUBOX_LIBRARY} uci uclient blobmsg_json ubus cares)
+set(EXTRA_LIBS ${LIBUHTTPD_LIBRARY} ${LIBUBOX_LIBRARY} uci uclient blobmsg_json ubus cares ipset pcap)
 
-add_executable(wifidog-ng gateway.c auth.c utils.c config.c http.c heartbeat.c counters.c ubus.c
-	resolv.c check_internet.c)
+add_executable(wifidog-ng main.c auth.c utils.c config.c http.c heartbeat.c counters.c ubus.c
+	resolv.c check_internet.c ipset.c term.c bwmon.c)
 
 target_link_libraries(wifidog-ng ${EXTRA_LIBS})
 

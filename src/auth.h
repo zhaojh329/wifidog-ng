@@ -20,7 +20,12 @@
 #ifndef _AUTH_H
 #define _AUTH_H
 
+enum {
+	AUTH_REQUEST_TYPE_LOGIN,
+	AUTH_REQUEST_TYPE_LOGOUT,
+};
+
 int auth_init();
-void authserver_request(void *data, const char *type, const char *ip, const char *mac, const char *token);
+void authserver_request(void *data, int type, const char *ip, const char *mac, const char *token);
 
 #endif

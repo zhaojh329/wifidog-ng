@@ -17,14 +17,16 @@
  * USA
  */
 
-#include <inttypes.h>
-#include <libgen.h>
-#include <libubox/ulog.h>
+#include <time.h>
 #include <libubus.h>
+#include <inttypes.h>
+#include <libubox/ulog.h>
+
 #include "utils.h"
 #include "config.h"
 #include "counters.h"
 #include "uci.h"
+#include "term.h"
 
 static struct ubus_context *ctx;
 static struct blob_buf b;
@@ -49,18 +51,50 @@ static int serve_term(struct ubus_context *ctx, struct ubus_object *obj,
 
     blobmsg_parse(term_policy, __TERM_MAX, tb, blob_data(msg), blob_len(msg));
 
-    if (!tb[TERM_ACTION] || !tb[TERM_MAC])
+    if (!tb[TERM_ACTION])
         return UBUS_STATUS_INVALID_ARGUMENT;
 
     action = blobmsg_data(tb[TERM_ACTION]);
-    mac = blobmsg_data(tb[TERM_MAC]);
+    
 
-    if (!strcmp(action, "add"))
-        allow_termianl(mac, NULL, false);
-    else if (!strcmp(action, "del"))
-        deny_termianl(mac);
-    else
-        return UBUS_STATUS_NOT_SUPPORTED;
+    if (!strcmp(action, "show")) {
+        void *tbl, *array;
+        struct terminal *term;
+        time_t now = time(NULL);
+
+        blobmsg_buf_init(&b);
+
+        array = blobmsg_open_array(&b, "terminals");
+
+        avl_for_each_element(&term_tree, term, avl) {
+            if (!(term->flag & TERM_FLAG_AUTHED))
+                continue;
+            tbl = blobmsg_open_table(&b, "");
+            blobmsg_add_string(&b, "ip", term->ip);
+            blobmsg_add_string(&b, "mac", term->mac);
+            blobmsg_add_string(&b, "token", term->token);
+            blobmsg_add_u32(&b, "uptime", now - term->auth_time);
+            blobmsg_add_u32(&b, "incoming", term->rx);
+            blobmsg_add_u32(&b, "outgoing", term->tx);
+            blobmsg_add_u8(&b, "timeout", (term->flag & TERM_FLAG_TIMEOUT) ? 1 : 0);
+            blobmsg_close_table(&b, tbl);
+        }
+        blobmsg_close_table(&b, array);
+        ubus_send_reply(ctx, req, b.head);
+        blob_buf_free(&b);
+    } else {
+        if (!tb[TERM_MAC])
+            return UBUS_STATUS_INVALID_ARGUMENT;
+
+        mac = blobmsg_data(tb[TERM_MAC]);
+    
+        if (!strcmp(action, "add"))
+            allow_termianl(mac, false);
+        else if (!strcmp(action, "del"))
+            deny_termianl(mac);
+        else
+            return UBUS_STATUS_NOT_SUPPORTED;
+    }
 
     return 0;
 }
@@ -156,7 +190,7 @@ static int serve_whitelist(struct ubus_context *ctx, struct ubus_object *obj,
         }
 
         if (mac) {
-            whitelist_termianl(mac);
+            allow_termianl(mac, false);
             save_whitelist("add", "mac", mac);
         }
     } else if (!strcmp(action, "del")) {

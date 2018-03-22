@@ -1,6 +1,6 @@
 ifeq ($(findstring openwrt, $(CC)),)
 ifneq ($(KERNELRELEASE),)
-	wifidog-ng-objs := main.o config.o term_manage.o ip_manage.o
+	wifidog-ng-objs := main.o config.o
 	obj-m := wifidog-ng.o
 else
 	KDIR = /lib/modules/$(shell uname -r)/build
@@ -13,6 +13,6 @@ clean:
 
 endif
 else
-	wifidog-ng-objs := main.o config.o term_manage.o ip_manage.o
+	wifidog-ng-objs := main.o config.o
 	obj-m := wifidog-ng.o
 endif
