@@ -21,6 +21,8 @@
 #include <libipset/session.h>
 #include <libipset/types.h>
 
+#include "utils.h"
+
 static struct ipset_session *session;
 
 int ipset_init()
@@ -42,32 +44,91 @@ void ipset_deinit()
 	ipset_session_fini(session);
 }
 
-static void ipset_add_del(const char *setname, const char *value, int timeout, bool add)
+static int handle_error(const char *tag)
 {
-	int cmd = add ? IPSET_CMD_ADD : IPSET_CMD_DEL;
-	const struct ipset_type *type;
-    static char buf[128];
+    ULOG_ERR("%s: %s\n", tag, ipset_session_error(session));
+    return -1;
+}
+
+int ipset_create(const char *setname, const char *typename, int timeout)
+{
+    int cmd = IPSET_CMD_CREATE;
+    const struct ipset_type *type;
 
     ipset_envopt_parse(session, IPSET_ENV_EXIST, NULL);
 
-	ipset_parse_setname(session, IPSET_SETNAME, setname);
+    if (ipset_parse_setname(session, IPSET_SETNAME, setname))
+        return handle_error("ipset_parse_setname");
+
+    if (ipset_parse_typename(session, IPSET_OPT_TYPENAME, typename) < 0)
+        return handle_error("ipset_parse_typename");
+
     type = ipset_type_get(session, cmd);
-    ipset_parse_elem(session, type->last_elem_optional, value);
+    if (!type)
+        return handle_error("ipset_type_get");
 
-    if (add && timeout > 0) {
-    	sprintf(buf, "%d", timeout);
-    	ipset_parse_timeout(session, IPSET_OPT_TIMEOUT, buf);
-    }
+    if (timeout > 0)
+        ipset_session_data_set(session, IPSET_OPT_TIMEOUT, &timeout);
+
+    if (ipset_cmd(session, cmd, 0) < 0)
+        return handle_error("ipset_cmd");
+
+    return 0;
+}
+
+static int ipset_easy_cmd(const char *setname, int cmd)
+{
+    if (ipset_parse_setname(session, IPSET_SETNAME, setname))
+        return handle_error("ipset_parse_setname");
+
+    if (ipset_cmd(session, cmd, 0) < 0)
+        return handle_error("ipset_cmd");
+
+    return 0;
+}
+
+int ipset_flush(const char *setname)
+{
+    return ipset_easy_cmd(setname, IPSET_CMD_FLUSH);
+}
+
+int ipset_destroy(const char *setname)
+{
+    return ipset_easy_cmd(setname, IPSET_CMD_DESTROY);
+}
+
+static int ipset_add_del(const char *setname, const char *value, int timeout, bool add)
+{
+	int cmd = add ? IPSET_CMD_ADD : IPSET_CMD_DEL;
+	const struct ipset_type *type;
+
+    ipset_envopt_parse(session, IPSET_ENV_EXIST, NULL);
+
+	if (ipset_parse_setname(session, IPSET_SETNAME, setname))
+        return handle_error("ipset_parse_setname");
+
+    type = ipset_type_get(session, cmd);
+    if (!type)
+        return handle_error("ipset_type_get");
+
+    if (ipset_parse_elem(session, type->last_elem_optional, value) < 0)
+        return handle_error("ipset_parse_elem");
+
+    if (add && timeout > 0)
+        ipset_session_data_set(session, IPSET_OPT_TIMEOUT, &timeout);
 	
-	ipset_cmd(session, cmd, 0);
+	if (ipset_cmd(session, cmd, 0) < 0)
+        return handle_error("ipset_cmd");
+
+    return 0;
 }
 
-void ipset_add(const char *setname, const char *value, int timeout)
+int ipset_add(const char *setname, const char *value, int timeout)
 {
-	ipset_add_del(setname, value, timeout, true);
+	return ipset_add_del(setname, value, timeout, true);
 }
 
-void ipset_del(const char *setname, const char *value)
+int ipset_del(const char *setname, const char *value)
 {
-	ipset_add_del(setname, value, 0, false);
+	return ipset_add_del(setname, value, 0, false);
 }

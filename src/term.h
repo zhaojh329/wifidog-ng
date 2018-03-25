@@ -45,6 +45,9 @@ extern struct avl_tree term_tree;
 int term_init();
 void term_deinit();
 
+void allow_term(const char *mac, bool temporary);
+void deny_term(const char *mac);
+
 struct terminal *term_new(const char *mac, const char *ip, const char *token);
 struct terminal *find_term(const char *mac);
 void del_term(struct terminal *term);

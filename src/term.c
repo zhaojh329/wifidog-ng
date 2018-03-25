@@ -24,9 +24,24 @@
 
 #include "utils.h"
 #include "term.h"
+#include "ipset.h"
 #include "config.h"
 
 struct avl_tree term_tree;
+
+void allow_term(const char *mac, bool temporary)
+{
+    struct config *conf = get_config();
+
+    ipset_add("wifidog-ng-mac", mac, temporary ? conf->temppass_time : 0);
+    ULOG_INFO("allow termianl: %s\n", mac);
+}
+
+void deny_term(const char *mac)
+{
+    ipset_del("wifidog-ng-mac", mac);
+    ULOG_INFO("deny termianl: %s\n", mac);
+}
 
 struct terminal *find_term(const char *mac)
 {
@@ -37,7 +52,7 @@ struct terminal *find_term(const char *mac)
 
 void del_term(struct terminal *term)
 {
-	deny_termianl(term->mac);
+	deny_term(term->mac);
 	avl_delete(&term_tree, &term->avl);
 	uloop_timeout_cancel(&term->timeout);
 	free(term);
@@ -49,6 +64,8 @@ void del_term_by_mac(const char *mac)
 
 	if (term)
 		del_term(term);
+	else
+		deny_term(term->mac);
 }
 
 static void term_timeout_cb(struct uloop_timeout *t)
@@ -95,7 +112,7 @@ void auth_term_by_mac(const char *mac)
 		ULOG_INFO("Auth terminal:%s\n", mac);
 		term->flag |= TERM_FLAG_AUTHED;
 		term->auth_time = time(NULL);
-		allow_termianl(mac, false);
+		allow_term(mac, false);
 		uloop_timeout_set(&term->timeout, conf->checkinterval * conf->clienttimeout * 1000);
 	}
 }

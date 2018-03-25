@@ -132,7 +132,7 @@ static void http_callback_auth(struct uh_client *cl)
     } else {
         simple_http_send(cl, "<h1>Invalid token</h1>");
         /* cancel possible temppass */
-        deny_termianl(mac);
+        deny_term(mac);
     }
 }
 
@@ -152,7 +152,7 @@ static void http_callback_temppass(struct uh_client *cl)
         goto done;
     }
 
-    allow_termianl(mac, true);
+    allow_term(mac, true);
     cl->chunk_printf(cl, "%s", script ? script : "");
 
 done:

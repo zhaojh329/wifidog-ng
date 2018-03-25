@@ -31,9 +31,9 @@
 #include <arpa/inet.h>
 #include <libubox/ulog.h>
 
+#include "ipset.h"
 #include "utils.h"
 #include "resolv.h"
-#include "ipset.h"
 #include "config.h"
 
 int get_iface_ip(const char *ifname, char *dst, int len)
@@ -187,6 +187,7 @@ int disable_kmod()
 
 static void destip_ctl(const char *ip, bool allow)
 {
+    printf("destip_ctl: %s\n", ip);
     if (allow)
         ipset_add("wifidog-ng-ip", ip, 0);
     else
@@ -240,18 +241,4 @@ void allow_domain(const char *domain)
 void deny_domain(const char *domain)
 {
     domain_ctl(domain, false);
-}
-
-void allow_termianl(const char *mac, bool temporary)
-{
-    struct config *conf = get_config();
-    
-    ipset_add("wifidog-ng-mac", mac, temporary ? conf->temppass_time : 0);
-    ULOG_INFO("allow termianl: %s\n", mac);
-}
-
-void deny_termianl(const char *mac)
-{
-    ipset_del("wifidog-ng-mac", mac);
-    ULOG_INFO("deny termianl: %s\n", mac);
 }

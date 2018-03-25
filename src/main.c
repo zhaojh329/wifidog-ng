@@ -69,10 +69,15 @@ int main(int argc, char **argv)
     if (ipset_init() < 0)
         return -1;
 
-    term_init();
-
     uloop_init();
 
+    term_init();
+
+    ipset_create("wifidog-ng-mac", "hash:mac", 86400);
+    ipset_create("wifidog-ng-ip", "hash:ip", 0);
+
+    ipset_flush("wifidog-ng-mac");
+    ipset_flush("wifidog-ng-ip");
 
     resolv_init();
 
@@ -87,9 +92,11 @@ int main(int argc, char **argv)
 
 EXIT:
     bwmon_deinit();
-    ipset_deinit();
     term_deinit();
     resolv_shutdown();
+    ipset_destroy("wifidog-ng-mac");
+    ipset_destroy("wifidog-ng-ip");
+    ipset_deinit();
     uloop_done();
     ULOG_INFO("wifidog-ng exit.\n");
     

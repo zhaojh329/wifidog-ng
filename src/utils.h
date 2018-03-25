@@ -38,7 +38,4 @@ int urlencode(char *buf, int blen, const char *src, int slen);
 int enable_kmod(const char *interface);
 int disable_kmod();
 
-void allow_termianl(const char *mac, bool temporary);
-void deny_termianl(const char *mac);
-
 #endif

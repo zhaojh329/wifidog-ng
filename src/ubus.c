@@ -89,9 +89,9 @@ static int serve_term(struct ubus_context *ctx, struct ubus_object *obj,
         mac = blobmsg_data(tb[TERM_MAC]);
     
         if (!strcmp(action, "add"))
-            allow_termianl(mac, false);
+            allow_term(mac, false);
         else if (!strcmp(action, "del"))
-            deny_termianl(mac);
+            del_term_by_mac(mac);
         else
             return UBUS_STATUS_NOT_SUPPORTED;
     }
@@ -190,7 +190,7 @@ static int serve_whitelist(struct ubus_context *ctx, struct ubus_object *obj,
         }
 
         if (mac) {
-            allow_termianl(mac, false);
+            allow_term(mac, false);
             save_whitelist("add", "mac", mac);
         }
     } else if (!strcmp(action, "del")) {
@@ -199,7 +199,7 @@ static int serve_whitelist(struct ubus_context *ctx, struct ubus_object *obj,
             save_whitelist("del", "domain", domain);
         }
         if (mac) {
-            deny_termianl(mac);
+            del_term_by_mac(mac);
             save_whitelist("del", "mac", mac);
         }
     } else {

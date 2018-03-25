@@ -23,7 +23,10 @@
 int ipset_init();
 void ipset_deinit();
 
-void ipset_add(const char *setname, const char *value, int timeout);
-void ipset_del(const char *setname, const char *value);
+int ipset_create(const char *setname, const char *typename, int timeout);
+int ipset_flush(const char *setname);
+int ipset_destroy(const char *setname);
+int ipset_add(const char *setname, const char *value, int timeout);
+int ipset_del(const char *setname, const char *value);
 
 #endif
