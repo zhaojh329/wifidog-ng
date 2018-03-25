@@ -36,6 +36,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 * 使用ipset以及编写内核模块实现认证管理，而不是使用iptables创建防火墙规则
 * 支持HTTPS：OpenSSL, mbedtls and CyaSSl(wolfssl)
 * 远程配置(借助[rtty])
+* 支持漫游
 * 代码结构清晰，通俗易懂
 
 # 依赖
@@ -105,6 +106,11 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 
 ## 认证确认
 `http://authserver/wifidog/auth?stage=login&ip=xx&max=xx&token=xx&incoming=xx&outgoing=xx`
+
+认证服务器应返回："Auth: 1" 或者 "Auth: 0"
+
+## 漫游
+`http://authserver/wifidog/auth?stage=roam&ip=xx&max=xx`
 
 认证服务器应返回："Auth: 1" 或者 "Auth: 0"
 

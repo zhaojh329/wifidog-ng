@@ -39,6 +39,7 @@ embedded linux(LEDE/Openwrt) system.
 * Use ipset and writing kernel module to implement authentication management instead of using iptables to create firewall rules
 * Support HTTPS: OpenSSL, mbedtls and CyaSSl(wolfssl)
 * Remote configuration(With the help of [rtty])
+* Support roam
 * Code structure is concise and understandable
 
 # Dependencies
@@ -108,6 +109,11 @@ To this the auth server is expected to respond with an http message containing t
 
 ## Auth confirm
 `http://authserver/wifidog/auth?stage=login&ip=xx&max=xx&token=xx&incoming=xx&outgoing=xx`
+
+The response of the auth server should be "Auth: 1" or "Auth: 0"
+
+## Roam
+`http://authserver/wifidog/auth?stage=roam&ip=xx&max=xx`
 
 The response of the auth server should be "Auth: 1" or "Auth: 0"
 
