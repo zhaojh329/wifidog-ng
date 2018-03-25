@@ -27,6 +27,7 @@
 #include "counters.h"
 #include "uci.h"
 #include "term.h"
+#include "auth.h"
 
 static struct ubus_context *ctx;
 static struct blob_buf b;
@@ -339,10 +340,37 @@ static int serve_config(struct ubus_context *ctx, struct ubus_object *obj,
     return 0;
 }
 
+enum {
+    ROAM_MAC,
+    ROAM_IP,
+    __ROAM_MAX
+};
+
+static const struct blobmsg_policy roam_policy[] = {
+    [ROAM_MAC] = { .name = "mac", .type = BLOBMSG_TYPE_STRING },
+    [ROAM_IP] = { .name = "ip", .type = BLOBMSG_TYPE_STRING },
+};
+
+static int serve_roam(struct ubus_context *ctx, struct ubus_object *obj,
+             struct ubus_request_data *req, const char *method,
+             struct blob_attr *msg)
+{
+    struct blob_attr *tb[__ROAM_MAX];
+
+    blobmsg_parse(roam_policy, __ROAM_MAX, tb, blob_data(msg), blob_len(msg));
+
+    if (!tb[ROAM_MAC] || !tb[ROAM_IP])
+        return UBUS_STATUS_INVALID_ARGUMENT;
+
+    authserver_request(NULL, AUTH_REQUEST_TYPE_ROAM, blobmsg_data(tb[ROAM_IP]), blobmsg_data(tb[ROAM_MAC]), NULL);
+    return 0;
+}
+
 static const struct ubus_method wifidog_methods[] = {
     UBUS_METHOD("term", serve_term, term_policy),
     UBUS_METHOD("config", serve_config, config_policy),
     UBUS_METHOD("whitelist", serve_whitelist, whitelist_policy),
+    UBUS_METHOD("roam", serve_roam, roam_policy),
 };
 
 static struct ubus_object_type wifidog_object_type = UBUS_OBJECT_TYPE("wifidog", wifidog_methods);
