@@ -2,7 +2,7 @@ add_definitions(-O -Wall -Werror --std=gnu99 -D_GNU_SOURCE)
 
 # The version number.
 set(WIFIDOG_NG_VERSION_MAJOR 1)
-set(WIFIDOG_NG_VERSION_MINOR 3)
+set(WIFIDOG_NG_VERSION_MINOR 4)
 set(WIFIDOG_NG_VERSION_PATCH 0)
 
 # Check the third party Libraries
