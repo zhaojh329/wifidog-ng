@@ -17,14 +17,17 @@
  * USA
  */
 
-#include "config.h"
-#include "utils.h"
 #include <uci_blob.h>
 #include <libubox/ulog.h>
 #include <uhttpd/uhttpd.h>
 #include <libubox/avl-cmp.h>
 
+#include "config.h"
+#include "utils.h"
+#include "term.h"
+
 static struct blob_buf b;
+static struct uci_context *cursor;
 
 static struct config conf = {
     .gw_interface = "br-lan",
@@ -233,45 +236,17 @@ static void parse_popular_server(struct uci_section *s)
     }
 }
 
-enum {
-    WHITELIST_DOMAIN_ATTR_DOMAIN,
-    WHITELIST_DOMAIN_ATTR_MAX
-};
-
-static const struct blobmsg_policy whitelist_domain_attrs[WHITELIST_DOMAIN_ATTR_MAX] = {
-    [WHITELIST_DOMAIN_ATTR_DOMAIN] = { .name = "domain", .type = BLOBMSG_TYPE_ARRAY },
-};
-
-const struct uci_blob_param_list whitelist_domain_attr_list = {
-    .n_params = WHITELIST_DOMAIN_ATTR_MAX,
-    .params = whitelist_domain_attrs,
-};
-
 static void parse_whitelist_domain(struct uci_section *s)
 {
-    struct blob_attr *tb[WHITELIST_DOMAIN_ATTR_MAX];
-
-    blob_buf_init(&b, 0);
-
-    uci_to_blob(&b, s, &whitelist_domain_attr_list);
-    blobmsg_parse(whitelist_domain_attrs, WHITELIST_DOMAIN_ATTR_MAX, tb, blob_data(b.head), blob_len(b.head));
-
-    if (tb[WHITELIST_DOMAIN_ATTR_DOMAIN]) {
-        int rem;
-        struct blob_attr *cur;
-
-        blobmsg_for_each_attr(cur, tb[WHITELIST_DOMAIN_ATTR_DOMAIN], rem) {
-            if (blobmsg_type(cur) == BLOBMSG_TYPE_STRING) {
-                const char *domain = blobmsg_data(cur);
-                struct whitelist_domain *d = calloc(1, sizeof(struct whitelist_domain) + strlen(domain) + 1);
-                if (!d) {
-                    ULOG_ERR("parse_whitelist_domain failed:%s\n", strerror(errno));
-                    return;
-                }
-                d->avl.key = strcpy(d->domain, domain);
-                avl_insert(&conf.whitelist_domains, &d->avl);
-            }
+    const char *domain = uci_lookup_option_string(cursor, s, "domain");
+    if (domain) {
+        struct whitelist_domain *d = calloc(1, sizeof(struct whitelist_domain) + strlen(domain) + 1);
+        if (!d) {
+            ULOG_ERR("parse_whitelist_domain failed:%s\n", strerror(errno));
+            return;
         }
+        d->avl.key = strcpy(d->domain, domain);
+        avl_insert(&conf.whitelist_domains, &d->avl);
     }
 }
 
@@ -335,14 +310,15 @@ err:
 
 int parse_config()
 {
-    struct uci_context *ctx = uci_alloc_context();
     struct uci_package *p = NULL;
     struct uci_element *e;
     char buf[128];
     
-    if (uci_load(ctx, "wifidog-ng", &p) || !p) {
+    cursor = uci_alloc_context();
+
+    if (uci_load(cursor, "wifidog-ng", &p) || !p) {
         ULOG_ERR("Load uci config 'wifidog-ng' failed\n");
-        uci_free_context(ctx);
+        uci_free_context(cursor);
         return -1;
     }
 
@@ -351,14 +327,19 @@ int parse_config()
 
     uci_foreach_element(&p->sections, e) {
         struct uci_section *s = uci_to_section(e);
-        if (!strcmp(s->type, "gateway"))
+        if (!strcmp(s->type, "gateway")) {
             parse_gateway(s);
-        else if (!strcmp(s->type, "authserver"))
+        } else if (!strcmp(s->type, "authserver")) {
             parse_authserver(s);
-        else if (!strcmp(s->type, "popularserver"))
+        } else if (!strcmp(s->type, "popularserver")) {
             parse_popular_server(s);
-        else if (!strcmp(s->type, "whitelist_domain"))
+        } else if (!strcmp(s->type, "whitelist_domain")) {
             parse_whitelist_domain(s);
+        } else if (!strcmp(s->type, "whitelist_mac")) {
+            const char *mac = uci_lookup_option_string(cursor, s, "mac");
+            if (mac)
+                allow_term(mac, false);
+        }
     }
 
     if (avl_is_empty(&conf.popular_servers)) {
@@ -367,7 +348,7 @@ int parse_config()
     }
 
     blob_buf_free(&b);
-    uci_free_context(ctx);
+    uci_free_context(cursor);
     
     if (!conf.gw_id) {
         if (get_iface_mac(conf.gw_interface, buf, sizeof(buf)) < 0)
