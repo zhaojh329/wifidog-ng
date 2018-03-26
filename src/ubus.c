@@ -29,8 +29,28 @@
 #include "term.h"
 #include "auth.h"
 
+static struct uci_context *cursor;
 static struct ubus_context *ctx;
 static struct blob_buf b;
+
+static struct uci_package *wifidog_uci_load()
+{
+    struct uci_package *p = NULL;
+
+    cursor = uci_alloc_context();
+
+    if (uci_load(cursor, "wifidog-ng", &p) && p)
+        uci_perror(cursor, "");
+
+    return p;
+}
+
+static void wifidog_uci_commit(struct uci_package *p)
+{
+    uci_save(cursor, p);
+    uci_commit(cursor, &p, false);
+    uci_unload(cursor, p);
+}
 
 enum {
     TERM_ACTION,
@@ -117,8 +137,7 @@ static const struct blobmsg_policy whitelist_policy[] = {
 
 static int save_whitelist(bool add, const char *type, const char *value, const char *comment)
 {
-    struct uci_context *cursor = uci_alloc_context();
-    struct uci_package *p = NULL;
+    struct uci_package *p;
     struct uci_section *s;
     struct uci_element *e;
     const char *stype;
@@ -126,10 +145,9 @@ static int save_whitelist(bool add, const char *type, const char *value, const c
         .package = "wifidog-ng"
     };
 
-    if (uci_load(cursor, "wifidog-ng", &p) && p) {
-        uci_perror(cursor, "");
-        return cursor->err;
-    }
+    p = wifidog_uci_load();
+    if (!p)
+        return -1;
 
     if (!strcmp(type, "mac"))
         stype = "whitelist_mac";
@@ -170,24 +188,20 @@ static int save_whitelist(bool add, const char *type, const char *value, const c
         }
     }
 
-    uci_save(cursor, p);
-    uci_commit(cursor, &p, false);
-    uci_unload(cursor, p);
+    wifidog_uci_commit(p);
     return 0;
 }
 
 static int show_whitelist(const char *type)
 {
-    struct uci_context *cursor = uci_alloc_context();
-    struct uci_package *p = NULL;
+    struct uci_package *p;
     struct uci_section *s;
     struct uci_element *e;
     const char *stype;
 
-    if (uci_load(cursor, "wifidog-ng", &p) && p) {
-        uci_perror(cursor, "");
-        return cursor->err;
-    }
+    p = wifidog_uci_load();
+    if (!p)
+        return -1;
 
     if (!strcmp(type, "mac"))
         stype = "whitelist_mac";
@@ -328,20 +342,18 @@ static bool uci_format_blob(struct blob_attr *v, const char **p)
 
 static int save_config(const char *type, struct blob_attr *options)
 {
-    struct uci_context *cursor = uci_alloc_context();
-    struct uci_ptr ptr = {
-        .package = "wifidog-ng"
-    };
-    struct uci_package *p = NULL;
+    struct uci_package *p;
     struct uci_section *s;
     struct uci_element *e;
     struct blob_attr *cur;
+    struct uci_ptr ptr = {
+        .package = "wifidog-ng"
+    };
     int rem;
 
-    if (uci_load(cursor, ptr.package, &p)) {
-        uci_perror(cursor, "");
-        return cursor->err;
-    }
+    p = wifidog_uci_load();
+    if (!p)
+        return -1;
 
     uci_foreach_element(&p->sections, e) {
         s = uci_to_section(e);
@@ -374,10 +386,7 @@ static int save_config(const char *type, struct blob_attr *options)
             blobmsg_add_string(&b, o->e.name, o->v.string);
     }
 
-    uci_save(cursor, p);
-    uci_commit(cursor, &p, false);
-
-    uci_unload(cursor, p);
+    wifidog_uci_commit(p);
     return 0;
 }
 
