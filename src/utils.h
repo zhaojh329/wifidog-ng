@@ -38,4 +38,7 @@ int urlencode(char *buf, int blen, const char *src, int slen);
 int enable_kmod(const char *interface);
 int disable_kmod();
 
+bool is_valid_ip(const char *ip);
+bool is_valid_mac(const char *mac);
+
 #endif

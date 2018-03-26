@@ -275,10 +275,13 @@ static int serve_whitelist(struct ubus_context *ctx, struct ubus_object *obj,
         if (save_whitelist(true, type, value, comment) < 0)
             return UBUS_STATUS_NOT_SUPPORTED;
 
-        if (!strcmp(type, "domain"))
+        if (!strcmp(type, "domain")) {
             allow_domain(value);
-        else if (!strcmp(type, "mac"))
+        } else if (!strcmp(type, "mac")) {
+            if (!is_valid_mac(value))
+                return UBUS_STATUS_INVALID_ARGUMENT;
             allow_term(value, false);
+        }
     } else if (!strcmp(action, "del")) {
         if (!value)
             return UBUS_STATUS_INVALID_ARGUMENT;
