@@ -132,6 +132,10 @@ void term_deinit()
 {
 	struct terminal *term, *ptr;
 
+	/* Check whether is initialized */
+	if (!term_tree.comp)
+		return;
+
 	avl_for_each_element_safe(&term_tree, term, avl, ptr) {
 		del_term(term);
 	}

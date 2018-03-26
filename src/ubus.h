@@ -21,5 +21,6 @@
 #define _WIFIDOG_UBUS_H
 
 int wifidog_ubus_init();
+void wifidog_ubus_free();
 
 #endif

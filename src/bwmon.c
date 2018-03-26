@@ -100,6 +100,8 @@ err:
 
 void bwmon_deinit()
 {
-	uloop_fd_delete(&ufd);
+	if (!pd)
+		return;
 	pcap_close(pd);
+	uloop_fd_delete(&ufd);
 }

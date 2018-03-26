@@ -48,6 +48,16 @@ int main(int argc, char **argv)
     bool verbose = false;
     struct config *conf = get_config();
 
+    if (ipset_init() < 0)
+        return -1;
+
+    ipset_create("wifidog-ng-mac", "hash:mac", 86400);
+    ipset_create("wifidog-ng-ip", "hash:ip", 0);
+
+    /* Mabe it is exist before create it */
+    ipset_flush("wifidog-ng-mac");
+    ipset_flush("wifidog-ng-ip");
+
     while ((opt = getopt(argc, argv, "v")) != -1) {
         switch (opt) {
         case 'v':
@@ -64,40 +74,32 @@ int main(int argc, char **argv)
     ULOG_INFO("wifidog-ng version %s\n", WIFIDOG_NG_VERSION_STRING);
 
     if (parse_config())
-        return -1;
-    
-    if (ipset_init() < 0)
-        return -1;
+        goto done;
 
     uloop_init();
 
-    term_init();
-
-    ipset_create("wifidog-ng-mac", "hash:mac", 86400);
-    ipset_create("wifidog-ng-ip", "hash:ip", 0);
-
-    ipset_flush("wifidog-ng-mac");
-    ipset_flush("wifidog-ng-ip");
-
-    resolv_init();
+    if (wifidog_ubus_init() < 0)
+        goto done;
 
     if (auth_init() < 0)
-        goto EXIT;
+        goto done;
 
-    wifidog_ubus_init();
+    term_init();
+    resolv_init();
     start_check_internet();
     bwmon_init(conf->gw_interface);
 
     uloop_run();
 
-EXIT:
+done:
+    uloop_done();
     bwmon_deinit();
     term_deinit();
     resolv_shutdown();
+    wifidog_ubus_free();
     ipset_destroy("wifidog-ng-mac");
     ipset_destroy("wifidog-ng-ip");
     ipset_deinit();
-    uloop_done();
     ULOG_INFO("wifidog-ng exit.\n");
     
     return 0;

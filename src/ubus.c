@@ -324,15 +324,20 @@ static int serve_config(struct ubus_context *ctx, struct ubus_object *obj,
              struct blob_attr *msg)
 {
     struct blob_attr *tb[__CONFIG_MAX];
+    const char *type;
 
     blobmsg_parse(config_policy, __CONFIG_MAX, tb, blob_data(msg), blob_len(msg));
 
     if (!tb[CONFIG_TYPE])
         return UBUS_STATUS_INVALID_ARGUMENT;
 
+    type = blobmsg_data(tb[CONFIG_TYPE]);
+    if (strcmp(type, "gateway") && strcmp(type, "authserver"))
+        return UBUS_STATUS_NOT_SUPPORTED;
+
     blob_buf_init(&b, 0);
 
-    if (save_config(blobmsg_data(tb[CONFIG_TYPE]), tb[CONFIG_OPTIONS]) < 0)
+    if (save_config(type, tb[CONFIG_OPTIONS]) < 0)
         return UBUS_STATUS_NOT_SUPPORTED;
 
     ubus_send_reply(ctx, req, b.head);
@@ -400,4 +405,10 @@ int wifidog_ubus_init()
         return -1;
     }
     return 0;
+}
+
+void wifidog_ubus_free()
+{
+    if (ctx)
+        ubus_free(ctx);
 }

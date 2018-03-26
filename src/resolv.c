@@ -133,6 +133,8 @@ int resolv_init()
 
 void resolv_shutdown()
 {
+    if (!default_ctx.channel)
+        return;
     ares_cancel(default_ctx.channel);
     ares_destroy(default_ctx.channel);
     ares_library_cleanup();
