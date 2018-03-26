@@ -102,64 +102,121 @@ static int serve_term(struct ubus_context *ctx, struct ubus_object *obj,
 
 enum {
     WHITELIST_ACTION,
-    WHITELIST_DOMAIN,
-    WHITELIST_MAC,
+    WHITELIST_TYPE,
+    WHITELIST_VALUE,
+    WHITELIST_COMMENT,
     __WHITELIST_MAX
 };
 
 static const struct blobmsg_policy whitelist_policy[] = {
     [WHITELIST_ACTION] = { .name = "action", .type = BLOBMSG_TYPE_STRING },
-    [WHITELIST_DOMAIN] = { .name = "domain", .type = BLOBMSG_TYPE_STRING },
-    [WHITELIST_MAC] = { .name = "mac", .type = BLOBMSG_TYPE_STRING },
+    [WHITELIST_TYPE] = { .name = "type", .type = BLOBMSG_TYPE_STRING },
+    [WHITELIST_VALUE] = { .name = "value", .type = BLOBMSG_TYPE_STRING },
+    [WHITELIST_COMMENT] = { .name = "comment", .type = BLOBMSG_TYPE_STRING },
 };
 
-static int save_whitelist(const char *action, const char *option, const char *value)
+static int save_whitelist(bool add, const char *type, const char *value, const char *comment)
 {
     struct uci_context *cursor = uci_alloc_context();
-    struct uci_ptr ptr = {
-        .package = "wifidog-ng"
-    };
     struct uci_package *p = NULL;
     struct uci_section *s;
     struct uci_element *e;
+    const char *stype;
+    struct uci_ptr ptr = {
+        .package = "wifidog-ng"
+    };
 
-    if (uci_load(cursor, ptr.package, &p)) {
+    if (uci_load(cursor, "wifidog-ng", &p) && p) {
         uci_perror(cursor, "");
         return cursor->err;
     }
 
+    if (!strcmp(type, "mac"))
+        stype = "whitelist_mac";
+    else if (!strcmp(type, "domain"))
+        stype = "whitelist_domain";
+    else
+        return -1;
+
     uci_foreach_element(&p->sections, e) {
         s = uci_to_section(e);
+        const char *tmp;
 
-        if (!strcmp(s->type, "whitelist"))
+        if (strcmp(s->type, stype))
+            continue;
+
+        tmp = uci_lookup_option_string(cursor, s, type);
+        if (tmp && !strcasecmp(tmp, value)) {
+            if (add)
+                return 0;
+
+            ptr.s = s;
+            uci_delete(cursor, &ptr);
             break;
-        s = NULL;
+        }
     }
 
-    if (!s)
-        uci_add_section(cursor, p, "whitelist", &s);
+    if (add) {
+        uci_add_section(cursor, p, stype, &s);
+        ptr.s = s;
+        ptr.option = type;
+        ptr.value = value;
+        uci_set(cursor, &ptr);
 
-    ptr.s = s;
-    ptr.option = option;
-    ptr.value = value;
-
-    if (!strcmp(action, "add")) {
-        ptr.o = uci_lookup_option(cursor, s, ptr.option);
-        if (ptr.o) {
-            uci_foreach_element(&ptr.o->v.list, e) {
-                if (!strcmp(uci_to_option(e)->e.name, value))
-                    goto RET;
-            }
+        if (comment) {
+            ptr.option = "comment";
+            ptr.value = comment;
+            uci_set(cursor, &ptr);
         }
-        uci_add_list(cursor, &ptr);
-    } else {
-        uci_del_list(cursor, &ptr);
     }
 
     uci_save(cursor, p);
     uci_commit(cursor, &p, false);
+    uci_unload(cursor, p);
+    return 0;
+}
 
-RET:
+static int show_whitelist(const char *type)
+{
+    struct uci_context *cursor = uci_alloc_context();
+    struct uci_package *p = NULL;
+    struct uci_section *s;
+    struct uci_element *e;
+    const char *stype;
+
+    if (uci_load(cursor, "wifidog-ng", &p) && p) {
+        uci_perror(cursor, "");
+        return cursor->err;
+    }
+
+    if (!strcmp(type, "mac"))
+        stype = "whitelist_mac";
+    else if (!strcmp(type, "domain"))
+        stype = "whitelist_domain";
+    else
+        return -1;
+
+    uci_foreach_element(&p->sections, e) {
+        void *tbl;
+        s = uci_to_section(e);
+        const char *value;
+
+        if (strcmp(s->type, stype))
+            continue;
+
+        tbl = blobmsg_open_table(&b, "");
+
+        value = uci_lookup_option_string(cursor, s, type);
+        if (value)
+            blobmsg_add_string(&b, type, value);
+
+        value = uci_lookup_option_string(cursor, s, "comment");
+        if (value)
+            blobmsg_add_string(&b, "comment", value);
+
+        blobmsg_close_table(&b, tbl);
+    }
+
     uci_unload(cursor, p);
     return 0;
 }
@@ -169,40 +226,56 @@ static int serve_whitelist(struct ubus_context *ctx, struct ubus_object *obj,
              struct blob_attr *msg)
 {
     struct blob_attr *tb[__WHITELIST_MAX];
-    const char *action, *domain = NULL, *mac = NULL;
+    const char *action, *type, *value = NULL, *comment = NULL;
 
     blobmsg_parse(whitelist_policy, __WHITELIST_MAX, tb, blob_data(msg), blob_len(msg));
 
-    if (!tb[WHITELIST_ACTION])
+    if (!tb[WHITELIST_ACTION] || !tb[WHITELIST_TYPE])
         return UBUS_STATUS_INVALID_ARGUMENT;
 
     action = blobmsg_data(tb[WHITELIST_ACTION]);
+    type = blobmsg_data(tb[WHITELIST_TYPE]);
 
-    if (tb[WHITELIST_DOMAIN])
-        domain = blobmsg_data(tb[WHITELIST_DOMAIN]);
+    if (!strcmp(action, "show")) {
+        void *array;
+        blob_buf_init(&b, 0);
 
-    if (tb[WHITELIST_MAC])
-        mac = blobmsg_data(tb[WHITELIST_MAC]);
+        array = blobmsg_open_array(&b, "results");
+        show_whitelist(type);
+        blobmsg_close_table(&b, array);
+        ubus_send_reply(ctx, req, b.head);
+        blob_buf_free(&b);
+        return 0;
+    }
+
+    if (tb[WHITELIST_VALUE])
+        value = blobmsg_data(tb[WHITELIST_VALUE]);
+
+    if (tb[WHITELIST_COMMENT])
+        comment = blobmsg_data(tb[WHITELIST_COMMENT]);
 
     if (!strcmp(action, "add")) {
-        if (domain) {
-            allow_domain(domain);
-            save_whitelist("add", "domain", domain);
-        }
+        if (!value)
+            return UBUS_STATUS_INVALID_ARGUMENT;
 
-        if (mac) {
-            allow_term(mac, false);
-            save_whitelist("add", "mac", mac);
-        }
+        if (save_whitelist(true, type, value, comment) < 0)
+            return UBUS_STATUS_NOT_SUPPORTED;
+
+        if (!strcmp(type, "domain"))
+            allow_domain(value);
+        else if (!strcmp(type, "mac"))
+            allow_term(value, false);
     } else if (!strcmp(action, "del")) {
-        if (domain) {
-            deny_domain(domain);
-            save_whitelist("del", "domain", domain);
-        }
-        if (mac) {
-            del_term_by_mac(mac);
-            save_whitelist("del", "mac", mac);
-        }
+        if (!value)
+            return UBUS_STATUS_INVALID_ARGUMENT;
+
+        if (save_whitelist(false, type, value, comment) < 0)
+            return UBUS_STATUS_NOT_SUPPORTED;
+
+        if (!strcmp(type, "domain"))
+            deny_domain(value);
+        else if (!strcmp(type, "mac"))
+            del_term_by_mac(value);
     } else {
         return UBUS_STATUS_NOT_SUPPORTED;
     }

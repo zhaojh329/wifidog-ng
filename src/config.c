@@ -234,38 +234,38 @@ static void parse_popular_server(struct uci_section *s)
 }
 
 enum {
-    WHITELIST_ATTR_DOMAIN,
-    WHITELIST_ATTR_MAX
+    WHITELIST_DOMAIN_ATTR_DOMAIN,
+    WHITELIST_DOMAIN_ATTR_MAX
 };
 
-static const struct blobmsg_policy whitelist_attrs[WHITELIST_ATTR_MAX] = {
-    [WHITELIST_ATTR_DOMAIN] = { .name = "domain", .type = BLOBMSG_TYPE_ARRAY },
+static const struct blobmsg_policy whitelist_domain_attrs[WHITELIST_DOMAIN_ATTR_MAX] = {
+    [WHITELIST_DOMAIN_ATTR_DOMAIN] = { .name = "domain", .type = BLOBMSG_TYPE_ARRAY },
 };
 
-const struct uci_blob_param_list whitelist_attr_list = {
-    .n_params = WHITELIST_ATTR_MAX,
-    .params = whitelist_attrs,
+const struct uci_blob_param_list whitelist_domain_attr_list = {
+    .n_params = WHITELIST_DOMAIN_ATTR_MAX,
+    .params = whitelist_domain_attrs,
 };
 
-static void parse_whitelist(struct uci_section *s)
+static void parse_whitelist_domain(struct uci_section *s)
 {
-    struct blob_attr *tb[WHITELIST_ATTR_MAX];
+    struct blob_attr *tb[WHITELIST_DOMAIN_ATTR_MAX];
 
     blob_buf_init(&b, 0);
 
-    uci_to_blob(&b, s, &whitelist_attr_list);
-    blobmsg_parse(whitelist_attrs, WHITELIST_ATTR_MAX, tb, blob_data(b.head), blob_len(b.head));
+    uci_to_blob(&b, s, &whitelist_domain_attr_list);
+    blobmsg_parse(whitelist_domain_attrs, WHITELIST_DOMAIN_ATTR_MAX, tb, blob_data(b.head), blob_len(b.head));
 
-    if (tb[WHITELIST_ATTR_DOMAIN]) {
+    if (tb[WHITELIST_DOMAIN_ATTR_DOMAIN]) {
         int rem;
         struct blob_attr *cur;
 
-        blobmsg_for_each_attr(cur, tb[WHITELIST_ATTR_DOMAIN], rem) {
+        blobmsg_for_each_attr(cur, tb[WHITELIST_DOMAIN_ATTR_DOMAIN], rem) {
             if (blobmsg_type(cur) == BLOBMSG_TYPE_STRING) {
                 const char *domain = blobmsg_data(cur);
                 struct whitelist_domain *d = calloc(1, sizeof(struct whitelist_domain) + strlen(domain) + 1);
                 if (!d) {
-                    ULOG_ERR("parse_whitelist failed:%s\n", strerror(errno));
+                    ULOG_ERR("parse_whitelist_domain failed:%s\n", strerror(errno));
                     return;
                 }
                 d->avl.key = strcpy(d->domain, domain);
@@ -357,8 +357,8 @@ int parse_config()
             parse_authserver(s);
         else if (!strcmp(s->type, "popularserver"))
             parse_popular_server(s);
-        else if (!strcmp(s->type, "whitelist"))
-            parse_whitelist(s);
+        else if (!strcmp(s->type, "whitelist_domain"))
+            parse_whitelist_domain(s);
     }
 
     if (avl_is_empty(&conf.popular_servers)) {
