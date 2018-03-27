@@ -77,12 +77,14 @@ static void authserver_request_roam_cb(void *data, char *content)
     ULOG_INFO("roam for %s: %s\n", mac, content);
 
     if (!content)
-        return;
+        goto done;
 
     sscanf(content, "Auth: %d", &code);
 
     if (code == 1)
         allow_term(mac, false);
+done:
+    free(mac);
 }
 
 void authserver_request(void *data, int type, const char *ip, const char *mac, const char *token)
@@ -95,7 +97,7 @@ void authserver_request(void *data, int type, const char *ip, const char *mac, c
     else if (type == AUTH_REQUEST_TYPE_LOGOUT)
         httpget(NULL, NULL, "%s&stage=logout&ip=%s&mac=%s&token=%s", conf->auth_url, ip, mac, token);
     else if (type == AUTH_REQUEST_TYPE_ROAM)
-        httpget(authserver_request_roam_cb, (void *)mac, "%s&stage=roam&ip=%s&mac=%s", conf->auth_url, ip, mac);
+        httpget(authserver_request_roam_cb, (void *)strdup(mac), "%s&stage=roam&ip=%s&mac=%s", conf->auth_url, ip, mac);
 }
 
 static void http_callback_404(struct uh_client *cl)
