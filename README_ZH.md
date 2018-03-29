@@ -175,19 +175,19 @@ wifidog-ng提供了UBUS配置接口，借助[rtty]的远程执行命令功能即
 
 ## 添加域名白名单
 
-    ubus call wifidog-ng whitelist '{"action":"add", "domain":"qq.com"}'
+    ubus call wifidog-ng whitelist '{"action":"add", "type":"domain", "value":"qq.com"}'
 
 ## 删除域名白名单
 
-    ubus call wifidog-ng whitelist '{"action":"del", "domain":"qq.com"}'
+    ubus call wifidog-ng whitelist '{"action":"del", "type":"domain", "value":"qq.com"}'
 
 ## 添加MAC白名单
 
-    ubus call wifidog-ng whitelist '{"action":"add", "mac":"11:22:33:44:55:66"}'
+    ubus call wifidog-ng whitelist '{"action":"add", "type":"mac", "value":"11:22:33:44:55:66"}'
 
 ## 删除MAC白名单
 
-    ubus call wifidog-ng whitelist '{"action":"del", "mac":"11:22:33:44:55:66"}'
+    ubus call wifidog-ng whitelist '{"action":"del", "type":"mac", "value":"11:22:33:44:55:66"}'
 
 ## 查看终端列表
 

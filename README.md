@@ -178,19 +178,19 @@ wifidog-ng provides the UBUS configuration interface and then remotely configuri
 
 ## Add domain whitelist
 
-    ubus call wifidog-ng whitelist '{"action":"add", "domain":"qq.com"}'
+    ubus call wifidog-ng whitelist '{"action":"add", "type":"domain", "value":"qq.com"}'
 
 ## Delete domain whitelist
 
-    ubus call wifidog-ng whitelist '{"action":"del", "domain":"qq.com"}'
+    ubus call wifidog-ng whitelist '{"action":"del", "type":"domain", "value":"qq.com"}'
 
 ## Add macaddr whitelist
 
-    ubus call wifidog-ng whitelist '{"action":"add", "mac":"11:22:33:44:55:66"}'
+    ubus call wifidog-ng whitelist '{"action":"add", "type":"mac", "value":"11:22:33:44:55:66"}'
 
 ## Delete macaddr whitelist
 
-    ubus call wifidog-ng whitelist '{"action":"del", "mac":"11:22:33:44:55:66"}'
+    ubus call wifidog-ng whitelist '{"action":"del", "type":"mac", "value":"11:22:33:44:55:66"}'
 
 ## Show terminal list
 
