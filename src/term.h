@@ -23,21 +23,25 @@
 #include <avl.h>
 #include <libubox/uloop.h>
 
+#define IPSET_PERMANENT_TIME    (100 * 24 * 60 * 60)
+#define IPSET_MAC               "wifidog-ng-mac"
+#define IPSET_IP                "wifidog-ng-ip"
+
 enum {
-	TERM_FLAG_AUTHED = (1 << 0),
-	TERM_FLAG_TIMEOUT = (1 << 1),
+    TERM_FLAG_AUTHED = (1 << 0),
+    TERM_FLAG_TIMEOUT = (1 << 1),
 };
 
 struct terminal {
-	uint8_t flag;
-	char mac[18];
-	char ip[16];
-	char token[33];
-	uint32_t tx;	/* outgoing */
-	uint32_t rx;	/* incoming */
-	time_t auth_time;
-	struct avl_node avl;
-	struct uloop_timeout timeout;
+    uint8_t flag;
+    char mac[18];
+    char ip[16];
+    char token[33];
+    uint32_t tx;    /* outgoing */
+    uint32_t rx;    /* incoming */
+    time_t auth_time;
+    struct avl_node avl;
+    struct uloop_timeout timeout;
 };
 
 extern struct avl_tree term_tree;

@@ -51,12 +51,12 @@ int main(int argc, char **argv)
     if (ipset_init() < 0)
         return -1;
 
-    ipset_create("wifidog-ng-mac", "hash:mac", 86400);
-    ipset_create("wifidog-ng-ip", "hash:ip", 0);
+    ipset_create(IPSET_MAC, "hash:mac", IPSET_PERMANENT_TIME);
+    ipset_create(IPSET_IP, "hash:ip", 0);
 
     /* Mabe it is exist before create it */
-    ipset_flush("wifidog-ng-mac");
-    ipset_flush("wifidog-ng-ip");
+    ipset_flush(IPSET_MAC);
+    ipset_flush(IPSET_IP);
 
     while ((opt = getopt(argc, argv, "v")) != -1) {
         switch (opt) {
@@ -97,8 +97,8 @@ done:
     term_deinit();
     resolv_shutdown();
     wifidog_ubus_free();
-    ipset_destroy("wifidog-ng-mac");
-    ipset_destroy("wifidog-ng-ip");
+    ipset_destroy(IPSET_MAC);
+    ipset_destroy(IPSET_IP);
     ipset_deinit();
     ULOG_INFO("wifidog-ng exit.\n");
     
