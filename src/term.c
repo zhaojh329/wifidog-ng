@@ -84,22 +84,30 @@ static void term_timeout_cb(struct uloop_timeout *t)
 
 struct terminal *term_new(const char *mac, const char *ip, const char *token)
 {
-	struct terminal *term;
+	struct terminal *term = find_term(mac);;
 
-	term = calloc(1, sizeof(struct terminal));
-	if (!term) {
-		ULOG_ERR("term_new failed: No mem\n");
-		return NULL;
+	if (term) {
+		term->flag = 0;
+		memset(term->token, 0, sizeof(term->token));
+	} else {
+		term = calloc(1, sizeof(struct terminal));
+		if (!term) {
+			ULOG_ERR("term_new failed: No mem\n");
+			return NULL;
+		}
+
+		term->timeout.cb = term_timeout_cb;
+		term->avl.key = strcpy(term->mac, mac);
+		avl_insert(&term_tree, &term->avl);
 	}
 
 	ULOG_INFO("New terminal:%s %s\n", mac, ip);
 
 	strncpy(term->token, token, sizeof(term->token) - 1);
-	strncpy(term->ip, ip, sizeof(term->ip) - 1);
-	term->avl.key = strcpy(term->mac, mac);
-	term->timeout.cb = term_timeout_cb;
+	memcpy(term->ip, ip, strlen(ip) + 1);
+
 	uloop_timeout_set(&term->timeout, 1000 * 60);
-	avl_insert(&term_tree, &term->avl);
+
 	return term;
 }
 
