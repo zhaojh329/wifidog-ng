@@ -58,7 +58,8 @@ static void parse_packet(u_char *user, const struct pcap_pkthdr *h, const u_char
 	return;
 
 done:
-	uloop_timeout_set(&term->timeout, conf->checkinterval * conf->clienttimeout * 1000);
+	if (term->flag & TERM_FLAG_AUTHED)
+		uloop_timeout_set(&term->timeout, conf->checkinterval * conf->clienttimeout * 1000);
 }
 
 static void uloop_read_cb(struct uloop_fd *u, unsigned int events)
