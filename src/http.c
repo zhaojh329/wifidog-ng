@@ -160,7 +160,7 @@ int httppost(http_cb cb, void *data, const char *post_data, const char *url, ...
     cl->timeout_msecs = 1000;
     cl->priv = param;
     
-    uclient_http_set_ssl_ctx(cl, ssl_ops, ssl_ctx, true);
+    uclient_http_set_ssl_ctx(cl, ssl_ops, ssl_ctx, false);
 
     if (uclient_connect(cl)) {
         ULOG_ERR("Failed to establish connection: %s\n", real_url);
