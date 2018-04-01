@@ -127,6 +127,7 @@ static void parse_gateway(struct uci_section *s)
 enum {
     AUTHSERVER_ATTR_HOST,
     AUTHSERVER_ATTR_PORT,
+    AUTHSERVER_ATTR_SSL,
     AUTHSERVER_ATTR_PATH,
     AUTHSERVER_ATTR_LOGIN_PATH,
     AUTHSERVER_ATTR_PORTAL_PATH,
@@ -139,6 +140,7 @@ enum {
 static const struct blobmsg_policy authserver_attrs[AUTHSERVER_ATTR_MAX] = {
     [AUTHSERVER_ATTR_HOST] = { .name = "host", .type = BLOBMSG_TYPE_STRING },
     [AUTHSERVER_ATTR_PORT] = { .name = "port", .type = BLOBMSG_TYPE_INT32 },
+    [AUTHSERVER_ATTR_SSL] = { .name = "ssl", .type = BLOBMSG_TYPE_BOOL },
     [AUTHSERVER_ATTR_PATH] = { .name = "path", .type = BLOBMSG_TYPE_STRING },
     [AUTHSERVER_ATTR_LOGIN_PATH] = { .name = "login_path", .type = BLOBMSG_TYPE_STRING },
     [AUTHSERVER_ATTR_PORTAL_PATH] = { .name = "portal_path", .type = BLOBMSG_TYPE_STRING },
@@ -167,6 +169,9 @@ static void parse_authserver(struct uci_section *s)
     
     if (tb[AUTHSERVER_ATTR_PORT])
         authserver->port = blobmsg_get_u32(tb[AUTHSERVER_ATTR_PORT]);
+
+    if (tb[AUTHSERVER_ATTR_SSL])
+        authserver->ssl = blobmsg_get_bool(tb[AUTHSERVER_ATTR_SSL]);
 
     if (tb[AUTHSERVER_ATTR_PATH])
         authserver->path = strdup(blobmsg_data(tb[AUTHSERVER_ATTR_PATH]));
@@ -272,34 +277,38 @@ static int init_authserver_url()
 {
     struct auth_server *authserver = &conf.authserver;
     char port[10] = "";
+    char proto[6] = "http";
 
     if (authserver->port != 80)
         sprintf(port, ":%d", authserver->port);
 
+    if (authserver->ssl)
+        strcpy(proto, "https");
+
     free(conf.login_url);
-    if (asprintf(&conf.login_url, "http://%s%s%s%s?gw_address=%s&gw_port=%d&gw_id=%s&ssid=%s",
-        authserver->host, port, authserver->path, authserver->login_path,
+    if (asprintf(&conf.login_url, "%s://%s%s%s%s?gw_address=%s&gw_port=%d&gw_id=%s&ssid=%s",
+        proto, authserver->host, port, authserver->path, authserver->login_path,
         conf.gw_address, conf.gw_port, conf.gw_id, conf.ssid ? conf.ssid : "") < 0)
         goto err;
 
     free(conf.auth_url);
-    if (asprintf(&conf.auth_url, "http://%s%s%s%s?gw_id=%s",
-        authserver->host, port, authserver->path, authserver->auth_path, conf.gw_id) < 0)
+    if (asprintf(&conf.auth_url, "%s://%s%s%s%s?gw_id=%s",
+        proto, authserver->host, port, authserver->path, authserver->auth_path, conf.gw_id) < 0)
         goto err;
 
     free(conf.ping_url);
-    if (asprintf(&conf.ping_url, "http://%s%s%s%s?gw_id=%s",
-        authserver->host, port, authserver->path, authserver->ping_path, conf.gw_id) < 0)
+    if (asprintf(&conf.ping_url, "%s://%s%s%s%s?gw_id=%s",
+        proto, authserver->host, port, authserver->path, authserver->ping_path, conf.gw_id) < 0)
         goto err;
 
     free(conf.portal_url);
-    if (asprintf(&conf.portal_url, "http://%s%s%s%s?gw_id=%s",
-        authserver->host, port, authserver->path, authserver->portal_path, conf.gw_id) < 0)
+    if (asprintf(&conf.portal_url, "%s://%s%s%s%s?gw_id=%s",
+        proto, authserver->host, port, authserver->path, authserver->portal_path, conf.gw_id) < 0)
         goto err;
 
     free(conf.msg_url);
-    if (asprintf(&conf.msg_url, "http://%s%s%s%s?gw_id=%s",
-        authserver->host, port, authserver->path, authserver->msg_path, conf.gw_id) < 0)
+    if (asprintf(&conf.msg_url, "%s://%s%s%s%s?gw_id=%s",
+        proto, authserver->host, port, authserver->path, authserver->msg_path, conf.gw_id) < 0)
         goto err;
 
     return 0;

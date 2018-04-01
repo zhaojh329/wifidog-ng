@@ -26,6 +26,7 @@
 
 struct auth_server {
     int port;
+    bool ssl;
     char *host;
     char *path;
     char *login_path;

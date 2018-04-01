@@ -73,16 +73,17 @@ If the install command fails, you can [compile it yourself](/BUILDOPENWRT.md).
 | client_timeout | seconds     | no        | 5       | Set this to the desired of number of CheckInterval of inactivity before a client is logged out. The timeout will be INTERVAL * TIMEOUT |
 
 ## Section authserver
-| Name        | Required  | Default         |
-| ------------| --------- | ----------------|
-| host        | yes       | no              |
-| port        | no        | 80              |
-| path        | no        | /wifidog        |
-| login_path  | no        | login           |
-| portal_path | no        | portal          |
-| msg_path    | no        | gw_message.php  |
-| ping_path   | no        | ping            |
-| auth_path   | no        | auth            |
+| Name        | Type        | Required  | Default         |
+| ----------- | ----------- | --------- | --------------- |
+| host        | string      | yes       | no              |
+| port        | port number | no        | 80              |
+| ssl         | bool        | no        | 0               |
+| path        | string      | no        | /wifidog        |
+| login_path  | string      | no        | login           |
+| portal_path | string      | no        | portal          |
+| msg_path    | string      | no        | gw_message.php  |
+| ping_path   | string      | no        | ping            |
+| auth_path   | string      | no        | auth            |
 
 ## Section popularserver
 | Name    | Type | Required  | Default                    |

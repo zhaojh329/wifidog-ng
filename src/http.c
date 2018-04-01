@@ -17,6 +17,7 @@
  * USA
  */
 
+#include <dlfcn.h>
 #include <libubox/ulog.h>
 #include "http.h"
 
@@ -28,6 +29,9 @@ struct uclient_param {
     int content_len;
     char *content;
 };
+
+static struct ustream_ssl_ctx *ssl_ctx;
+static const struct ustream_ssl_ops *ssl_ops;
 
 static void _uclient_free(struct uclient *cl)
 {
@@ -107,18 +111,43 @@ static const struct uclient_cb _cb = {
     .error = handle_uclient_error
 };
 
+static void init_ustream_ssl()
+{
+    void *dlh;
+
+    if (ssl_ctx)
+        return;
+
+    dlh = dlopen("libustream-ssl.so", RTLD_LAZY | RTLD_LOCAL);
+    if (!dlh)
+        return;
+
+    ssl_ops = dlsym(dlh, "ustream_ssl_ops");
+    if (!ssl_ops)
+        return;
+
+    ssl_ctx = ssl_ops->context_new(false);
+}
+
 int httppost(http_cb cb, void *data, const char *post_data, const char *url, ...)
 {
-    static char buf[1024];
+    static char real_url[1024];
     struct uclient *cl;
     va_list ap;
     struct uclient_param *param = NULL;
 
+    init_ustream_ssl();
+
     va_start(ap, url);
-    vsnprintf(buf, sizeof(buf), url, ap);
+    vsnprintf(real_url, sizeof(real_url), url, ap);
     va_end(ap);
-    
-    cl = uclient_new(buf, NULL, &_cb);
+
+    if (!ssl_ctx && !strncmp(real_url, "https", 5)) {
+        ULOG_ERR("SSL support not available\n");
+        return -1;
+    }
+
+    cl = uclient_new(real_url, NULL, &_cb);
     if (!cl) {
         ULOG_ERR("Failed to allocate uclient context\n");
         return -1;
@@ -131,8 +160,10 @@ int httppost(http_cb cb, void *data, const char *post_data, const char *url, ...
     cl->timeout_msecs = 1000;
     cl->priv = param;
     
+    uclient_http_set_ssl_ctx(cl, ssl_ops, ssl_ctx, true);
+
     if (uclient_connect(cl)) {
-        ULOG_ERR("Failed to establish connection\n");
+        ULOG_ERR("Failed to establish connection: %s\n", real_url);
         goto err;
     }
 
