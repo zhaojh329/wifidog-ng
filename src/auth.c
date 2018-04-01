@@ -58,10 +58,10 @@ static void authserver_request_login_cb(void *data, char *content)
 
     if (code == 1) {
         auth_term_by_mac(mac);
-        cl->redirect(cl, 302, conf->portal_url);
+        cl->redirect(cl, 302, "%s&mac=%s", conf->portal_url, mac);
         return;
     } else {
-        cl->redirect(cl, 302, conf->msg_url);
+        cl->redirect(cl, 302, "%s&mac=%s", conf->msg_url, mac);
         return;
     }
 
