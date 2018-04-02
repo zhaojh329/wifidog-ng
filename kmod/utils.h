@@ -23,10 +23,10 @@ static inline int wd_ip_set_test(const char *name, const struct sk_buff *skb,
     if (!set)
         return 0;
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 9, 89)
-    par.state = state;
-#else
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)
     par.net = state->net;
+#else
+    par.state = state;
 #endif
 
     ret = ip_set_test(index, skb, &par, opt);
