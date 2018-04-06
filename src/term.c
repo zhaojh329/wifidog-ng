@@ -65,7 +65,7 @@ void del_term_by_mac(const char *mac)
     if (term)
         del_term(term);
     else
-        deny_term(term->mac);
+        deny_term(mac);
 }
 
 static void term_timeout_cb(struct uloop_timeout *t)
