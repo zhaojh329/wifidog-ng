@@ -446,11 +446,18 @@ static int serve_roam(struct ubus_context *ctx, struct ubus_object *obj,
              struct blob_attr *msg)
 {
     struct blob_attr *tb[__ROAM_MAX];
+    struct terminal *term;
 
     blobmsg_parse(roam_policy, __ROAM_MAX, tb, blob_data(msg), blob_len(msg));
 
     if (!tb[ROAM_MAC] || !tb[ROAM_IP])
         return UBUS_STATUS_INVALID_ARGUMENT;
+
+    term = term_new(blobmsg_data(tb[ROAM_MAC]), blobmsg_data(tb[ROAM_IP]), "");
+    if (!term) {
+        ULOG_ERR("term_new failed: No mem\n");
+        return 0;
+    }
 
     authserver_request(NULL, AUTH_REQUEST_TYPE_ROAM, blobmsg_data(tb[ROAM_IP]), blobmsg_data(tb[ROAM_MAC]), NULL);
     return 0;

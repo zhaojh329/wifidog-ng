@@ -56,6 +56,6 @@ struct terminal *term_new(const char *mac, const char *ip, const char *token);
 struct terminal *find_term(const char *mac);
 void del_term(struct terminal *term);
 void del_term_by_mac(const char *mac);
-void auth_term_by_mac(const char *mac);
+void auth_term_by_mac(const char *mac, const char *token);
 
 #endif

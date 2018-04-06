@@ -116,7 +116,7 @@ The response of the auth server should be "Auth: 1" or "Auth: 0"
 ## Roam
 `http://authserver/wifidog/auth?stage=roam&ip=xx&max=xx`
 
-The response of the auth server should be "Auth: 1" or "Auth: 0"
+The response of the auth server should be "token=xxxxxxx" or other.
 
 ## Counters (POST)
 `http://authserver/wifidog/auth/?stage=counters&gw_id=xx`

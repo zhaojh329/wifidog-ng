@@ -113,7 +113,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 ## 漫游
 `http://authserver/wifidog/auth?stage=roam&ip=xx&max=xx`
 
-认证服务器应返回："Auth: 1" 或者 "Auth: 0"
+认证服务器应返回：""token=xxxxxxx" 或者其它任意字符串
 
 ## 流量统计(POST)
 `http://authserver/wifidog/auth/?stage=counters&gw_id=xx`

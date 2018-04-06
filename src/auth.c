@@ -57,7 +57,7 @@ static void authserver_request_login_cb(void *data, char *content)
     sscanf(content, "Auth: %d", &code);
 
     if (code == 1) {
-        auth_term_by_mac(mac);
+        auth_term_by_mac(mac,  NULL);
         cl->redirect(cl, 302, "%s&mac=%s", conf->portal_url, mac);
         return;
     } else {
@@ -71,18 +71,18 @@ deny:
 
 static void authserver_request_roam_cb(void *data, char *content)
 {
-    int code = -1;
     char *mac = data;
+    char *p;
 
     ULOG_INFO("roam for %s: %s\n", mac, content);
 
     if (!content)
         goto done;
 
-    sscanf(content, "Auth: %d", &code);
+    p = strstr(content, "token=");
+    if (p)
+        auth_term_by_mac(mac, p + 6);
 
-    if (code == 1)
-        allow_term(mac, false);
 done:
     free(mac);
 }

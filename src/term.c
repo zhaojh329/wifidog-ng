@@ -111,7 +111,7 @@ struct terminal *term_new(const char *mac, const char *ip, const char *token)
     return term;
 }
 
-void auth_term_by_mac(const char *mac)
+void auth_term_by_mac(const char *mac, const char *token)
 {
     struct terminal *term = find_term(mac);
     struct config *conf = get_config();
@@ -120,6 +120,8 @@ void auth_term_by_mac(const char *mac)
         ULOG_INFO("Auth terminal:%s\n", mac);
         term->flag |= TERM_FLAG_AUTHED;
         term->auth_time = time(NULL);
+        if (token && *token)
+            strncpy(term->token, token, sizeof(term->token) - 1);
         allow_term(mac, false);
         uloop_timeout_set(&term->timeout, conf->checkinterval * conf->clienttimeout * 1000);
     }
