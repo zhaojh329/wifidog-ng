@@ -103,10 +103,14 @@ void authserver_request(void *data, int type, const char *ip, const char *mac, c
 static void http_callback_404(struct uh_client *cl)
 {
     struct config *conf = get_config();
+    static char *redirect_html = "<!doctype html>"
+        "<html><body><script type=\"text/javascript\">"
+        "setTimeout(function() {location.href = '%s&ip=%s&mac=%s';}, 1);"
+        "</script></body></html>";
     const char *remote_addr = cl->get_peer_addr(cl);
+    const char *ua = cl->get_header(cl, "user-agent");
+    const char *path = cl->get_path(cl);
     char mac[18] = "";
-    static char *redirect_html = "<!doctype html><html><body><script type=\"text/javascript\">"
-                "setTimeout(function() {location.href = '%s&ip=%s&mac=%s';}, 1);</script></body></html>";
 
     if (cl->request.method != UH_HTTP_MSG_GET)
         goto done;
@@ -118,7 +122,15 @@ static void http_callback_404(struct uh_client *cl)
     
     cl->send_header(cl, 200, "OK", -1);
     cl->header_end(cl);
-    cl->chunk_printf(cl, redirect_html, conf->login_url, remote_addr, mac);
+
+    if (ua && strstr(ua, "wispr") && cl->request.version == UH_HTTP_VER_1_0) {
+        if (strstr(path, "success.html"))
+            cl->chunk_printf(cl, "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>");
+        else
+            cl->chunk_printf(cl, "fuck you");
+    } else {
+        cl->chunk_printf(cl, redirect_html, conf->login_url, remote_addr, mac);
+    }
 
 done:
     cl->request_done(cl);
