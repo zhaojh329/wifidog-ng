@@ -279,7 +279,7 @@ static int init_authserver_url()
     char port[10] = "";
     char proto[6] = "http";
 
-    if (authserver->port != 80)
+    if (authserver->port != 80 && authserver->port != 443)
         sprintf(port, ":%d", authserver->port);
 
     if (authserver->ssl)
