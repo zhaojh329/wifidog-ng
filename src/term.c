@@ -52,7 +52,8 @@ struct terminal *find_term(const char *mac)
 
 void del_term(struct terminal *term)
 {
-    deny_term(term->mac);
+    if (term->flag & TERM_FLAG_AUTHED)
+        deny_term(term->mac);
     avl_delete(&term_tree, &term->avl);
     uloop_timeout_cancel(&term->timeout);
     free(term);
