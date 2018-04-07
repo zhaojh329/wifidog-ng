@@ -178,6 +178,8 @@ int httppost(http_cb cb, void *data, const char *post_data, const char *url, ...
         goto err;
     }
 
+    ULOG_INFO("http request: %s\n", real_url);
+
     return 0;
     
 err:
