@@ -453,7 +453,7 @@ static int serve_roam(struct ubus_context *ctx, struct ubus_object *obj,
     if (!tb[ROAM_MAC] || !tb[ROAM_IP])
         return UBUS_STATUS_INVALID_ARGUMENT;
 
-    term = term_new(blobmsg_data(tb[ROAM_MAC]), blobmsg_data(tb[ROAM_IP]), "");
+    term = term_new(blobmsg_data(tb[ROAM_MAC]), blobmsg_data(tb[ROAM_IP]));
     if (!term) {
         ULOG_ERR("term_new failed: No mem\n");
         return 0;

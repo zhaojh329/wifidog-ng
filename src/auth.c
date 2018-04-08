@@ -74,14 +74,14 @@ static void authserver_request_roam_cb(void *data, char *content)
     char *mac = data;
     char *p;
 
-    ULOG_INFO("roam for %s: %s\n", mac, content);
-
     if (!content)
         goto done;
 
     p = strstr(content, "token=");
-    if (p)
+    if (p) {
+        ULOG_INFO("roam for %s: %s\n", mac, content);
         auth_term_by_mac(mac, p + 6);
+    }
 
 done:
     free(mac);
@@ -109,8 +109,8 @@ static void http_callback_404(struct uh_client *cl)
         "</script></body></html>";
     const char *remote_addr = cl->get_peer_addr(cl);
     const char *ua = cl->get_header(cl, "user-agent");
-    const char *path = cl->get_path(cl);
     char mac[18] = "";
+    struct terminal *term;
 
     if (cl->request.method != UH_HTTP_MSG_GET)
         goto done;
@@ -120,14 +120,32 @@ static void http_callback_404(struct uh_client *cl)
         goto done;
     }
     
+    term = find_term(mac);
+    if (!term) {
+        term = term_new(mac, remote_addr);
+        if (!term) {
+            ULOG_ERR("term_new failed: No mem\n");
+            simple_http_send(cl, "system error");
+            return;
+        }
+    }
+
+    /* If roam auth success */
+    if (term->flag & TERM_FLAG_AUTHED) {
+        cl->redirect(cl, 302, "%s&mac=%s", conf->portal_url, mac);
+        return;
+    }
+
     cl->send_header(cl, 200, "OK", -1);
     cl->header_end(cl);
 
     if (ua && strstr(ua, "wispr") && cl->request.version == UH_HTTP_VER_1_0) {
-        if (strstr(path, "success.html"))
+        if (term->flag & TERM_FLAG_WISPR) {
             cl->chunk_printf(cl, "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>");
-        else
+        } else {
             cl->chunk_printf(cl, "fuck you");
+            term->flag |= TERM_FLAG_WISPR;
+        }
     } else {
         cl->chunk_printf(cl, redirect_html, conf->login_url, remote_addr, mac);
     }
@@ -154,11 +172,12 @@ static void http_callback_auth(struct uh_client *cl)
         if (logout) {
             authserver_request(NULL, AUTH_REQUEST_TYPE_LOGOUT, remote_addr, mac, token);
         } else {
-            struct terminal *term = term_new(mac, remote_addr, token);
+            struct terminal *term = find_term(mac);
             if (!term) {
                 simple_http_send(cl, "<h1>System error</h1>");
                 return;
             }
+            strncpy(term->token, token, sizeof(term->token) - 1);
             authserver_request(cl, AUTH_REQUEST_TYPE_LOGIN, remote_addr, mac, token);
         }
     } else {

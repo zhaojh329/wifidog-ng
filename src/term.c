@@ -83,14 +83,11 @@ static void term_timeout_cb(struct uloop_timeout *t)
     del_term(term);
 }
 
-struct terminal *term_new(const char *mac, const char *ip, const char *token)
+struct terminal *term_new(const char *mac, const char *ip)
 {
-    struct terminal *term = find_term(mac);;
+    struct terminal *term = find_term(mac);
 
-    if (term) {
-        term->flag = 0;
-        memset(term->token, 0, sizeof(term->token));
-    } else {
+    if (!term) {
         term = calloc(1, sizeof(struct terminal));
         if (!term) {
             ULOG_ERR("term_new failed: No mem\n");
@@ -102,12 +99,11 @@ struct terminal *term_new(const char *mac, const char *ip, const char *token)
         avl_insert(&term_tree, &term->avl);
     }
 
+    term->flag = 0; /* If it already exists previously, clear the flag */
+    strcpy(term->ip, ip);
+    uloop_timeout_set(&term->timeout, 1000 * 120);
+
     ULOG_INFO("New terminal:%s %s\n", mac, ip);
-
-    strncpy(term->token, token, sizeof(term->token) - 1);
-    memcpy(term->ip, ip, strlen(ip) + 1);
-
-    uloop_timeout_set(&term->timeout, 1000 * 60);
 
     return term;
 }

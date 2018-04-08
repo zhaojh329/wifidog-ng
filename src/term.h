@@ -30,6 +30,7 @@
 enum {
     TERM_FLAG_AUTHED = (1 << 0),
     TERM_FLAG_TIMEOUT = (1 << 1),
+    TERM_FLAG_WISPR = (1 << 2),
 };
 
 struct terminal {
@@ -52,7 +53,7 @@ void term_deinit();
 void allow_term(const char *mac, bool temporary);
 void deny_term(const char *mac);
 
-struct terminal *term_new(const char *mac, const char *ip, const char *token);
+struct terminal *term_new(const char *mac, const char *ip);
 struct terminal *find_term(const char *mac);
 void del_term(struct terminal *term);
 void del_term_by_mac(const char *mac);
