@@ -25,6 +25,25 @@
 #include "http.h"
 #include "term.h"
 
+const char *apple_host[] = {
+    "captive.apple.com",
+    "www.apple.com",
+    NULL
+};
+
+static int is_apple_captive(const char *host)
+{
+    int i = 0;
+
+    while(apple_host[i] != NULL) {
+        if(strcmp(host, apple_host[i]) == 0)
+            return 1;
+        i++;
+    }
+
+    return 0;
+}
+
 static inline void simple_http_send(struct uh_client *cl, const char *str)
 {
     cl->send_header(cl, 200, "OK", -1);
@@ -103,14 +122,15 @@ void authserver_request(void *data, int type, const char *ip, const char *mac, c
 static void http_callback_404(struct uh_client *cl)
 {
     struct config *conf = get_config();
-    static char *redirect_html = "<!doctype html>"
-        "<html><body><script type=\"text/javascript\">"
-        "setTimeout(function() {location.href = '%s&ip=%s&mac=%s';}, 1);"
-        "</script></body></html>";
+    static const char *redirect_html = "<!doctype html>"
+        "<html><title>Success</title>"
+        "<script type=\"text/javascript\">"
+        "setTimeout(function() {location.href = '%s&ip=%s&mac=%s';}, 1);</script>"
+        "<body>Success</body></html>";
     const char *remote_addr = cl->get_peer_addr(cl);
-    const char *ua = cl->get_header(cl, "user-agent");
-    char mac[18] = "";
+    const char *host = cl->get_header(cl, "host");
     struct terminal *term;
+    char mac[18] = "";
 
     if (cl->request.method != UH_HTTP_MSG_GET)
         goto done;
@@ -139,16 +159,17 @@ static void http_callback_404(struct uh_client *cl)
     cl->send_header(cl, 200, "OK", -1);
     cl->header_end(cl);
 
-    if (ua && strstr(ua, "wispr") && cl->request.version == UH_HTTP_VER_1_0) {
-        if (term->flag & TERM_FLAG_WISPR) {
-            cl->chunk_printf(cl, "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>");
-        } else {
-            cl->chunk_printf(cl, "fuck you");
-            term->flag |= TERM_FLAG_WISPR;
+    if (is_apple_captive(host)) {
+        if (cl->request.version == UH_HTTP_VER_1_0) {
+            if (!(term->flag & TERM_FLAG_APPLE)) {
+                 cl->chunk_printf(cl, "fuck you");
+                 term->flag |= TERM_FLAG_APPLE;
+                 goto done;
+            }
         }
-    } else {
-        cl->chunk_printf(cl, redirect_html, conf->login_url, remote_addr, mac);
     }
+
+    cl->chunk_printf(cl, redirect_html, conf->login_url, remote_addr, mac);
 
 done:
     cl->request_done(cl);
