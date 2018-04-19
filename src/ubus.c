@@ -37,7 +37,8 @@ static struct uci_package *wifidog_uci_load()
 {
     struct uci_package *p = NULL;
 
-    cursor = uci_alloc_context();
+    if (!cursor)
+        cursor = uci_alloc_context();
 
     if (uci_load(cursor, "wifidog-ng", &p) && p)
         uci_perror(cursor, "");
@@ -503,4 +504,7 @@ void wifidog_ubus_free()
 {
     if (ctx)
         ubus_free(ctx);
+
+    if (cursor)
+        uci_free_context(cursor);
 }
