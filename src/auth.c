@@ -123,9 +123,12 @@ static void http_callback_404(struct uh_client *cl)
 {
     struct config *conf = get_config();
     static const char *redirect_html = "<!doctype html>"
-        "<html><title>Success</title>"
+        "<html><head><title>Success</title>"
         "<script type=\"text/javascript\">"
-        "setTimeout(function() {location.href = '%s&ip=%s&mac=%s';}, 1);</script>"
+        "setTimeout(function() {location.replace('%s&ip=%s&mac=%s');}, 1);</script>"
+        "<style type=\"text/css\">"
+        "body {color:#FFF}"
+        "</style></head>"
         "<body>Success</body></html>";
     const char *remote_addr = cl->get_peer_addr(cl);
     const char *host = cl->get_header(cl, "host");
