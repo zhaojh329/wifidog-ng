@@ -109,7 +109,7 @@ To this the auth server is expected to respond with an http message containing t
 `http://gw_address:gw_port/wifidog/auth?token=xx`
 
 ## Auth confirm
-`http://authserver/wifidog/auth?stage=login&ip=xx&max=xx&token=xx&incoming=xx&outgoing=xx`
+`http://authserver/wifidog/auth?stage=login&ip=xx&mac=xx&token=xx&incoming=xx&outgoing=xx`
 
 The response of the auth server should be "Auth: 1" or "Auth: 0"
 
