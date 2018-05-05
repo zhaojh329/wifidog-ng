@@ -106,7 +106,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 `http://gw_address:gw_port/wifidog/auth?token=xx`
 
 ## 认证确认
-`http://authserver/wifidog/auth?stage=login&ip=xx&max=xx&token=xx&incoming=xx&outgoing=xx`
+`http://authserver/wifidog/auth?stage=login&ip=xx&mac=xx&token=xx&incoming=xx&outgoing=xx`
 
 认证服务器应返回："Auth: 1" 或者 "Auth: 0"
 
