@@ -56,6 +56,7 @@ struct config {
     int checkinterval;
     int clienttimeout;
     int temppass_time;
+    bool dhcp_host_white;
 
     struct auth_server authserver;
     struct avl_tree popular_servers;
@@ -69,6 +70,7 @@ struct config {
 };
 
 int parse_config();
+int parse_dhcp_host();
 
 struct config *get_config();
 void reinit_config(const char *type, const char *option, const char *value);
