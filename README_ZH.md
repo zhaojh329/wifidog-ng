@@ -60,6 +60,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 | 名称           | 类型        | 是否必须  | 默认值   | 描述 |
 | -------------- | ----------- | --------- | -------- | ----------- |
 | enabled        | bool        | no        | 0        | 是否开启wifidog-ng |
+| dhcp_host_white| bool        | no        | 1        | dhcp中的mac为白名单 |
 | id             | string      | no        |          | 网关ID，如果未设置，将使用ifname的macaddr |
 | ifname         | interface   | no        | br-lan   | wifidog-ng监听接口 |
 | port           | port number | no        | 2060     | wifidog-ng监听端口 |
@@ -87,11 +88,15 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 | ------- | ---- | --------- | -------------------------- |
 | server  | list | no        | `www.baidu.com www.qq.com` |
 
-## Section whitelist
-| 名称   | 类型 | 描述                    |
-| ------ | ---- | ---------------------- |
-| domain | list | 可以是一个域名或者ip地址 |
-| mac    | list |                        |
+## Section whitelist_mac
+| 名称   | 类型   | 描述                    |
+| ------ | ------ | ---------------------- |
+| mac    | string | mac 地址               |
+
+## Section whitelist_domain
+| 名称   | 类型   | 描述                    |
+| ------ | ------ | ---------------------- |
+| domain | string | 可以是一个域名或者ip地址 |
 
 # 协议
 ## 网关心跳

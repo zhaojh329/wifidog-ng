@@ -63,6 +63,7 @@ If the install command fails, you can [compile it yourself](/BUILDOPENWRT.md).
 | Name           | Type        | Required  | Default | Description |
 | -------------- | ----------- | --------- | ------- | ------- |
 | enabled        | bool        | no        | 0       | Whether to enable wifidog |
+| dhcp_host_white| bool        | no        | 1       | dhcp mac is whitelist |
 | id             | string      | no        |         | Gateway id. If not set, the mac address of the ifname will be used |
 | ifname         | interface   | no        | br-lan  | Interface to listen by wifidog |
 | port           | port number | no        | 2060    | port to listen by wifidog |
@@ -90,11 +91,15 @@ If the install command fails, you can [compile it yourself](/BUILDOPENWRT.md).
 | ------- | ---- | --------- | -------------------------- |
 | server  | list | no        | `www.baidu.com www.qq.com` |
 
-## Section whitelist
-| Name   | Type | Description               | 
-| ------ | ---- | ------------------------- |
-| domain | list | Can be a domain or ipaddr |
-| mac    | list | A macaddr                 |
+## Section whitelist_mac
+| Name   | Type   | Description               | 
+| ------ | ------ | ---------------------- |
+| mac    | string | A macaddr                 |
+
+## Section whitelist_domain
+| Name   | Type   | Description               | 
+| ------ | ------ | ---------------------- |
+| domain | string | Can be a domain or ipaddr |
 
 # Protocol
 ## Gateway heartbeating (Ping Protocol)
