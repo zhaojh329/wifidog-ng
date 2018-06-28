@@ -36,6 +36,7 @@ static struct config conf = {
     .checkinterval = 30,
     .clienttimeout = 5,
     .temppass_time = 30,
+    .dhcp_host_white = true,
     .authserver = {
         .port = 80,
         .path = "/wifidog/",
@@ -58,6 +59,7 @@ enum {
     GATEWAY_ATTR_CHECKINTERVAL,
     GATEWAY_ATTR_CLIENTTIMEOUT,
     GATEWAY_ATTR_TEMPPASS_TIME,
+    GATEWAY_ATTR_DHCP_HOST_WHITE,
     GATEWAY_ATTR_MAX
 };
 
@@ -71,7 +73,8 @@ static const struct blobmsg_policy gateway_attrs[GATEWAY_ATTR_MAX] = {
     [GATEWAY_ATTR_SSL_PORT] = { .name = "ssl_port", .type = BLOBMSG_TYPE_INT32 },
     [GATEWAY_ATTR_CHECKINTERVAL] = { .name = "checkinterval", .type = BLOBMSG_TYPE_INT32 },
     [GATEWAY_ATTR_CLIENTTIMEOUT] = { .name = "client_timeout", .type = BLOBMSG_TYPE_INT32 },
-    [GATEWAY_ATTR_TEMPPASS_TIME] = { .name = "temppass_time", .type = BLOBMSG_TYPE_INT32 }
+    [GATEWAY_ATTR_TEMPPASS_TIME] = { .name = "temppass_time", .type = BLOBMSG_TYPE_INT32 },
+    [GATEWAY_ATTR_DHCP_HOST_WHITE] = { .name = "dhcp_host_white", .type = BLOBMSG_TYPE_BOOL }
 };
 
 static const struct uci_blob_param_list gateway_attr_list = {
@@ -122,6 +125,9 @@ static void parse_gateway(struct uci_section *s)
 
     if (tb[GATEWAY_ATTR_TEMPPASS_TIME])
         conf.temppass_time = blobmsg_get_u32(tb[GATEWAY_ATTR_TEMPPASS_TIME]);
+
+    if (tb[GATEWAY_ATTR_DHCP_HOST_WHITE])
+        conf.dhcp_host_white = blobmsg_get_bool(tb[GATEWAY_ATTR_DHCP_HOST_WHITE]);
 }
 
 enum {
@@ -374,7 +380,37 @@ int parse_config()
     if (init_authserver_url() < 0)
         return -1;
 
+    if (conf.dhcp_host_white)
+        parse_dhcp_host();
+
     return config_kmod();
+}
+
+int parse_dhcp_host()
+{
+    struct uci_package *p = NULL;
+    struct uci_element *e;
+    
+    cursor = uci_alloc_context();
+
+    if (uci_load(cursor, "dhcp", &p) || !p) {
+        ULOG_ERR("Load uci config 'dhcp' failed\n");
+        uci_free_context(cursor);
+        return -1;
+    }
+
+    uci_foreach_element(&p->sections, e) {
+        struct uci_section *s = uci_to_section(e);
+        if (!strcmp(s->type, "host")) {
+            const char *mac = uci_lookup_option_string(cursor, s, "mac");
+            if (mac)
+                allow_term(mac, false);
+        }
+    }
+
+    uci_free_context(cursor);
+
+    return 0;
 }
 
 struct config *get_config()
