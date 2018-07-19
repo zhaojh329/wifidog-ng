@@ -1,44 +1,60 @@
 /*
- * Copyright (C) 2017 Jianhui Zhao <jianhuizhao329@gmail.com>
+ *  Copyright (C) 2017 jianhui zhao <jianhuizhao329@gmail.com>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
- * USA
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  */
 
-#ifndef _UTILS_H
-#define _UTILS_H
+#ifndef __UTILS_H_
+#define __UTILS_H_
 
-#include <stdint.h>
-#include <stdbool.h>
+#include <linux/netfilter/ipset/ip_set.h>
 
-int get_iface_ip(const char *ifname, char *dst, int len);
-int get_iface_mac(const char *ifname, char *dst, int len);
-int arp_get(const char *ifname, const char *ip, char *dst, int len);
+static inline int wd_ip_set_test(const char *name, const struct sk_buff *skb,
+    struct ip_set_adt_opt *opt, const struct nf_hook_state *state)
+{
+    static struct xt_action_param par = { };
+    struct ip_set *set = NULL;
+    ip_set_id_t index;
+    int ret;
 
-void allow_destip(const char *ip);
-void deny_destip(const char *ip);
+    index = ip_set_get_byname(state->net, name, &set);
+    if (!set)
+        return 0;
 
-void allow_domain(const char *domain);
-void deny_domain(const char *domain);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)
+    par.net = state->net;
+#else
+    par.state = state;
+#endif
 
-int urlencode(char *buf, int blen, const char *src, int slen);
+    ret = ip_set_test(index, skb, &par, opt);
+    ip_set_put_byindex(state->net, index);
+    return ret;
+}
 
-int enable_kmod(const char *interface);
-int disable_kmod();
+static inline int is_allowed_mac(struct sk_buff *skb, const struct nf_hook_state *state)
+{
+    static struct ip_set_adt_opt opt = {
+        .family = NFPROTO_IPV4,
+        .dim = IPSET_DIM_ONE,
+        .flags = IPSET_DIM_ONE_SRC,
+        .ext.timeout = UINT_MAX,
+    };
 
-bool is_valid_ip(const char *ip);
-bool is_valid_mac(const char *mac);
+    return wd_ip_set_test("wifidog-ng-mac", skb, &opt, state);
+}
+
+static inline int is_allowed_dest_ip(struct sk_buff *skb, const struct nf_hook_state *state)
+{
+    static struct ip_set_adt_opt opt = {
+        .family = NFPROTO_IPV4,
+        .dim = IPSET_DIM_ONE,
+        .ext.timeout = UINT_MAX,
+    };
+
+    return wd_ip_set_test("wifidog-ng-ip", skb, &opt, state);
+}
 
 #endif

@@ -1,461 +1,174 @@
 /*
- * Copyright (C) 2017 Jianhui Zhao <jianhuizhao329@gmail.com>
+ *  Copyright (C) 2017 jianhui zhao <jianhuizhao329@gmail.com>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
- * USA
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  */
 
-#include <uci_blob.h>
-#include <libubox/ulog.h>
-#include <uhttpd/uhttpd.h>
-#include <libubox/avl-cmp.h>
+#include <linux/uaccess.h>
+#include <linux/inetdevice.h>
+#include <linux/seq_file.h>
 
 #include "config.h"
-#include "utils.h"
-#include "term.h"
 
-static struct blob_buf b;
-static struct uci_context *cursor;
+static struct proc_dir_entry *proc;
+static struct config conf;
 
-static struct config conf = {
-    .gw_interface = "br-lan",
-    .gw_port = 2060,
-    .gw_ssl_port = 8443,
-    .checkinterval = 30,
-    .clienttimeout = 5,
-    .temppass_time = 30,
-    .dhcp_host_white = true,
-    .authserver = {
-        .port = 80,
-        .path = "/wifidog/",
-        .login_path = "login",
-        .portal_path = "portal",
-        .msg_path = "gw_message.php",
-        .ping_path = "ping",
-        .auth_path = "auth",
+static int update_gw_interface(const char *interface)
+{
+    int ret = 0;
+    struct net_device *dev;
+    struct in_device *in_dev;
+
+    dev = dev_get_by_name(&init_net, interface);
+    if (!dev) {
+        pr_err("Not found interface: %s\n", interface);
+        return -ENOENT;
     }
-};
 
-enum {
-    GATEWAY_ATTR_ENABLED,
-    GATEWAY_ATTR_IFNAME,
-    GATEWAY_ATTR_ADDRESS,
-    GATEWAY_ATTR_ID,
-    GATEWAY_ATTR_SSID,
-    GATEWAY_ATTR_PORT,
-    GATEWAY_ATTR_SSL_PORT,
-    GATEWAY_ATTR_CHECKINTERVAL,
-    GATEWAY_ATTR_CLIENTTIMEOUT,
-    GATEWAY_ATTR_TEMPPASS_TIME,
-    GATEWAY_ATTR_DHCP_HOST_WHITE,
-    GATEWAY_ATTR_MAX
-};
+    conf.interface_ifindex = dev->ifindex;
 
-static const struct blobmsg_policy gateway_attrs[GATEWAY_ATTR_MAX] = {
-    [GATEWAY_ATTR_ENABLED] = { .name = "enabled", .type = BLOBMSG_TYPE_BOOL },
-    [GATEWAY_ATTR_IFNAME] = { .name = "ifname", .type = BLOBMSG_TYPE_STRING },
-    [GATEWAY_ATTR_ADDRESS] = { .name = "address", .type = BLOBMSG_TYPE_STRING },
-    [GATEWAY_ATTR_ID] = { .name = "id", .type = BLOBMSG_TYPE_STRING },
-    [GATEWAY_ATTR_SSID] = { .name = "ssid", .type = BLOBMSG_TYPE_STRING },
-    [GATEWAY_ATTR_PORT] = { .name = "port", .type = BLOBMSG_TYPE_INT32 },
-    [GATEWAY_ATTR_SSL_PORT] = { .name = "ssl_port", .type = BLOBMSG_TYPE_INT32 },
-    [GATEWAY_ATTR_CHECKINTERVAL] = { .name = "checkinterval", .type = BLOBMSG_TYPE_INT32 },
-    [GATEWAY_ATTR_CLIENTTIMEOUT] = { .name = "client_timeout", .type = BLOBMSG_TYPE_INT32 },
-    [GATEWAY_ATTR_TEMPPASS_TIME] = { .name = "temppass_time", .type = BLOBMSG_TYPE_INT32 },
-    [GATEWAY_ATTR_DHCP_HOST_WHITE] = { .name = "dhcp_host_white", .type = BLOBMSG_TYPE_BOOL }
-};
+    in_dev = inetdev_by_index(dev_net(dev), conf.interface_ifindex);
+    if (!in_dev) {
+        pr_err("Not found in_dev on %s\n", interface);
+        ret = -ENOENT;
+        goto QUIT;
+    }
 
-static const struct uci_blob_param_list gateway_attr_list = {
-    .n_params = GATEWAY_ATTR_MAX,
-    .params = gateway_attrs,
-};
+    for_primary_ifa(in_dev) {
+        conf.interface_ipaddr = ifa->ifa_local;
+        conf.interface_mask = ifa->ifa_mask;
+        conf.interface_broadcast = ifa->ifa_broadcast;
 
-static void parse_gateway(struct uci_section *s)
-{    
-    struct blob_attr *tb[GATEWAY_ATTR_MAX];
+        pr_info("Found ip from %s: %pI4\n", interface, &conf.interface_ipaddr);
+        break;
+    } endfor_ifa(in_dev)
     
-    blob_buf_init(&b, 0);
+QUIT:   
+    dev_put(dev);
 
-    uci_to_blob(&b, s, &gateway_attr_list);
-    blobmsg_parse(gateway_attrs, GATEWAY_ATTR_MAX, tb, blob_data(b.head), blob_len(b.head));
-
-    if (tb[GATEWAY_ATTR_ENABLED] && !blobmsg_get_bool(tb[GATEWAY_ATTR_ENABLED])) {
-        ULOG_INFO("wifidog-ng not enabled\n");
-        exit(0);
-    }
-
-    if (tb[GATEWAY_ATTR_IFNAME])
-        conf.gw_interface = strdup(blobmsg_data(tb[GATEWAY_ATTR_IFNAME]));
-
-    if (tb[GATEWAY_ATTR_ADDRESS])
-        conf.gw_address = strdup(blobmsg_data(tb[GATEWAY_ATTR_ADDRESS]));
-    
-    if (tb[GATEWAY_ATTR_ID])
-        conf.gw_id = strdup(blobmsg_data(tb[GATEWAY_ATTR_ID]));
-
-    if (tb[GATEWAY_ATTR_SSID]) {
-        const char *ssid = blobmsg_data(tb[GATEWAY_ATTR_SSID]);
-        conf.ssid = calloc(1, strlen(ssid) * 4);
-        urlencode((char *)conf.ssid, strlen(ssid) * 4, ssid, strlen(ssid));
-    }
-
-    if (tb[GATEWAY_ATTR_PORT])
-        conf.gw_port = blobmsg_get_u32(tb[GATEWAY_ATTR_PORT]);
-
-    if (tb[GATEWAY_ATTR_SSL_PORT])
-        conf.gw_ssl_port = blobmsg_get_u32(tb[GATEWAY_ATTR_SSL_PORT]);
-
-    if (tb[GATEWAY_ATTR_CHECKINTERVAL])
-        conf.checkinterval = blobmsg_get_u32(tb[GATEWAY_ATTR_CHECKINTERVAL]);
-
-    if (tb[GATEWAY_ATTR_CLIENTTIMEOUT])
-        conf.clienttimeout = blobmsg_get_u32(tb[GATEWAY_ATTR_CLIENTTIMEOUT]);
-
-    if (tb[GATEWAY_ATTR_TEMPPASS_TIME])
-        conf.temppass_time = blobmsg_get_u32(tb[GATEWAY_ATTR_TEMPPASS_TIME]);
-
-    if (tb[GATEWAY_ATTR_DHCP_HOST_WHITE])
-        conf.dhcp_host_white = blobmsg_get_bool(tb[GATEWAY_ATTR_DHCP_HOST_WHITE]);
+    return ret;
 }
 
-enum {
-    AUTHSERVER_ATTR_HOST,
-    AUTHSERVER_ATTR_PORT,
-    AUTHSERVER_ATTR_SSL,
-    AUTHSERVER_ATTR_PATH,
-    AUTHSERVER_ATTR_LOGIN_PATH,
-    AUTHSERVER_ATTR_PORTAL_PATH,
-    AUTHSERVER_ATTR_MSG_PATH,
-    AUTHSERVER_ATTR_PING_PATH,
-    AUTHSERVER_ATTR_AUTH_PATH,
-    AUTHSERVER_ATTR_MAX
-};
-
-static const struct blobmsg_policy authserver_attrs[AUTHSERVER_ATTR_MAX] = {
-    [AUTHSERVER_ATTR_HOST] = { .name = "host", .type = BLOBMSG_TYPE_STRING },
-    [AUTHSERVER_ATTR_PORT] = { .name = "port", .type = BLOBMSG_TYPE_INT32 },
-    [AUTHSERVER_ATTR_SSL] = { .name = "ssl", .type = BLOBMSG_TYPE_BOOL },
-    [AUTHSERVER_ATTR_PATH] = { .name = "path", .type = BLOBMSG_TYPE_STRING },
-    [AUTHSERVER_ATTR_LOGIN_PATH] = { .name = "login_path", .type = BLOBMSG_TYPE_STRING },
-    [AUTHSERVER_ATTR_PORTAL_PATH] = { .name = "portal_path", .type = BLOBMSG_TYPE_STRING },
-    [AUTHSERVER_ATTR_MSG_PATH] = { .name = "msg_path", .type = BLOBMSG_TYPE_STRING },
-    [AUTHSERVER_ATTR_PING_PATH] = { .name = "ping_path", .type = BLOBMSG_TYPE_STRING },
-    [AUTHSERVER_ATTR_AUTH_PATH] = { .name = "auth_path", .type = BLOBMSG_TYPE_STRING },
-};
-
-const struct uci_blob_param_list authserver_attr_list = {
-    .n_params = AUTHSERVER_ATTR_MAX,
-    .params = authserver_attrs,
-};
-
-static void parse_authserver(struct uci_section *s)
+static int proc_config_show(struct seq_file *s, void *v)
 {
-    struct blob_attr *tb[AUTHSERVER_ATTR_MAX];
-    struct auth_server *authserver = &conf.authserver;
-    
-    blob_buf_init(&b, 0);
-
-    uci_to_blob(&b, s, &authserver_attr_list);
-    blobmsg_parse(authserver_attrs, AUTHSERVER_ATTR_MAX, tb, blob_data(b.head), blob_len(b.head));
-
-    if (tb[AUTHSERVER_ATTR_HOST])
-        authserver->host = strdup(blobmsg_data(tb[AUTHSERVER_ATTR_HOST]));
-    
-    if (tb[AUTHSERVER_ATTR_PORT])
-        authserver->port = blobmsg_get_u32(tb[AUTHSERVER_ATTR_PORT]);
-
-    if (tb[AUTHSERVER_ATTR_SSL])
-        authserver->ssl = blobmsg_get_bool(tb[AUTHSERVER_ATTR_SSL]);
-
-    if (tb[AUTHSERVER_ATTR_PATH])
-        authserver->path = strdup(blobmsg_data(tb[AUTHSERVER_ATTR_PATH]));
-
-    if (tb[AUTHSERVER_ATTR_LOGIN_PATH])
-        authserver->login_path = strdup(blobmsg_data(tb[AUTHSERVER_ATTR_LOGIN_PATH]));
-
-    if (tb[AUTHSERVER_ATTR_PORTAL_PATH])
-        authserver->portal_path = strdup(blobmsg_data(tb[AUTHSERVER_ATTR_PORTAL_PATH]));
-
-    if (tb[AUTHSERVER_ATTR_MSG_PATH])
-        authserver->msg_path = strdup(blobmsg_data(tb[AUTHSERVER_ATTR_MSG_PATH]));
-
-    if (tb[AUTHSERVER_ATTR_PING_PATH])
-        authserver->ping_path = strdup(blobmsg_data(tb[AUTHSERVER_ATTR_PING_PATH]));
-
-    if (tb[AUTHSERVER_ATTR_AUTH_PATH])
-        authserver->auth_path = strdup(blobmsg_data(tb[AUTHSERVER_ATTR_AUTH_PATH]));
-}
-
-enum {
-    POPULAR_SERVER_ATTR_SERVER,
-    POPULAR_SERVER_ATTR_MAX
-};
-
-static const struct blobmsg_policy popular_server_attrs[POPULAR_SERVER_ATTR_MAX] = {
-    [POPULAR_SERVER_ATTR_SERVER] = { .name = "server", .type = BLOBMSG_TYPE_ARRAY },
-};
-
-const struct uci_blob_param_list popular_server_attr_list = {
-    .n_params = POPULAR_SERVER_ATTR_MAX,
-    .params = popular_server_attrs,
-};
-
-int add_popular_server(const char *host)
-{
-    struct popular_server *p = calloc(1, sizeof(struct popular_server) + strlen(host) + 1);
-    if (!p) {
-        ULOG_ERR("add_popular_server failed:%s\n", strerror(errno));
-        return -1;
-    }
-    p->avl.key = strcpy(p->host, host);
-    avl_insert(&conf.popular_servers, &p->avl);
-    return 0;
-}
-static void parse_popular_server(struct uci_section *s)
-{
-    struct blob_attr *tb[POPULAR_SERVER_ATTR_MAX];
-
-    blob_buf_init(&b, 0);
-
-    uci_to_blob(&b, s, &popular_server_attr_list);
-    blobmsg_parse(popular_server_attrs, POPULAR_SERVER_ATTR_MAX, tb, blob_data(b.head), blob_len(b.head));
-
-    if (tb[POPULAR_SERVER_ATTR_SERVER]) {
-        int rem;
-        struct blob_attr *cur;
-
-        blobmsg_for_each_attr(cur, tb[POPULAR_SERVER_ATTR_SERVER], rem) {
-            if (blobmsg_type(cur) == BLOBMSG_TYPE_STRING) {
-                if (add_popular_server(blobmsg_data(cur)) < 0) {
-                    ULOG_ERR("parse_popular_server failed\n");
-                    return;
-                }
-            }
-        }
-    }
-}
-
-static void parse_whitelist_domain(struct uci_section *s)
-{
-    const char *domain = uci_lookup_option_string(cursor, s, "domain");
-    if (domain) {
-        struct whitelist_domain *d = calloc(1, sizeof(struct whitelist_domain) + strlen(domain) + 1);
-        if (!d) {
-            ULOG_ERR("parse_whitelist_domain failed:%s\n", strerror(errno));
-            return;
-        }
-        d->avl.key = strcpy(d->domain, domain);
-        avl_insert(&conf.whitelist_domains, &d->avl);
-    }
-}
-
-static int config_kmod()
-{
-    FILE *fp = fopen("/proc/wifidog-ng/config", "w");
-    if (!fp) {
-        ULOG_ERR("Kernel module is not loaded\n");
-        return -1;
-    }
-
-    fprintf(fp, "port=%d\n", conf.gw_port);
-    fprintf(fp, "ssl_port=%d\n", conf.gw_ssl_port);
-    fprintf(fp, "client_timeout=%d\n", conf.checkinterval * conf.clienttimeout);
-    fprintf(fp, "temppass_time=%d\n", conf.temppass_time);
-    fclose(fp);
-
-    ULOG_INFO("Config kmod OK\n");
-    return 0;
-}
-
-static int init_authserver_url()
-{
-    struct auth_server *authserver = &conf.authserver;
-    char port[10] = "";
-    char proto[6] = "http";
-
-    if (authserver->port != 80 && authserver->port != 443)
-        sprintf(port, ":%d", authserver->port);
-
-    if (authserver->ssl)
-        strcpy(proto, "https");
-
-    free(conf.login_url);
-    if (asprintf(&conf.login_url, "%s://%s%s%s%s?gw_address=%s&gw_port=%d&gw_id=%s&ssid=%s",
-        proto, authserver->host, port, authserver->path, authserver->login_path,
-        conf.gw_address, conf.gw_port, conf.gw_id, conf.ssid ? conf.ssid : "") < 0)
-        goto err;
-
-    free(conf.auth_url);
-    if (asprintf(&conf.auth_url, "%s://%s%s%s%s?gw_id=%s",
-        proto, authserver->host, port, authserver->path, authserver->auth_path, conf.gw_id) < 0)
-        goto err;
-
-    free(conf.ping_url);
-    if (asprintf(&conf.ping_url, "%s://%s%s%s%s?gw_id=%s",
-        proto, authserver->host, port, authserver->path, authserver->ping_path, conf.gw_id) < 0)
-        goto err;
-
-    free(conf.portal_url);
-    if (asprintf(&conf.portal_url, "%s://%s%s%s%s?gw_id=%s",
-        proto, authserver->host, port, authserver->path, authserver->portal_path, conf.gw_id) < 0)
-        goto err;
-
-    free(conf.msg_url);
-    if (asprintf(&conf.msg_url, "%s://%s%s%s%s?gw_id=%s",
-        proto, authserver->host, port, authserver->path, authserver->msg_path, conf.gw_id) < 0)
-        goto err;
-
-    return 0;
-err:
-    ULOG_ERR("asprintf: %s\n", strerror(errno));
-    return -1;
-}
-
-int parse_config()
-{
-    struct uci_package *p = NULL;
-    struct uci_element *e;
-    char buf[128];
-    
-    cursor = uci_alloc_context();
-
-    if (uci_load(cursor, "wifidog-ng", &p) || !p) {
-        ULOG_ERR("Load uci config 'wifidog-ng' failed\n");
-        uci_free_context(cursor);
-        return -1;
-    }
-
-    avl_init(&conf.popular_servers, avl_strcmp, false, NULL);
-    avl_init(&conf.whitelist_domains, avl_strcmp, false, NULL);
-
-    uci_foreach_element(&p->sections, e) {
-        struct uci_section *s = uci_to_section(e);
-        if (!strcmp(s->type, "gateway")) {
-            parse_gateway(s);
-        } else if (!strcmp(s->type, "authserver")) {
-            parse_authserver(s);
-        } else if (!strcmp(s->type, "popularserver")) {
-            parse_popular_server(s);
-        } else if (!strcmp(s->type, "whitelist_domain")) {
-            parse_whitelist_domain(s);
-        } else if (!strcmp(s->type, "whitelist_mac")) {
-            const char *mac = uci_lookup_option_string(cursor, s, "mac");
-            if (mac)
-                allow_term(mac, false);
-        }
-    }
-
-    if (avl_is_empty(&conf.popular_servers)) {
-        add_popular_server("www.baidu.com");
-        add_popular_server("www.qq.com");
-    }
-
-    blob_buf_free(&b);
-    uci_free_context(cursor);
-    
-    if (!conf.gw_id) {
-        if (get_iface_mac(conf.gw_interface, buf, sizeof(buf)) < 0)
-            return -1;
-        conf.gw_id = strdup(buf);
-    }
-
-    if (!conf.gw_address) {
-        if (get_iface_ip(conf.gw_interface, buf, sizeof(buf)) < 0)
-            return -1;
-        conf.gw_address = strdup(buf);
-    }
-    
-    if (init_authserver_url() < 0)
-        return -1;
-
-    if (conf.dhcp_host_white)
-        parse_dhcp_host();
-
-    return config_kmod();
-}
-
-int parse_dhcp_host()
-{
-    struct uci_package *p = NULL;
-    struct uci_element *e;
-    
-    cursor = uci_alloc_context();
-
-    if (uci_load(cursor, "dhcp", &p) || !p) {
-        ULOG_ERR("Load uci config 'dhcp' failed\n");
-        uci_free_context(cursor);
-        return -1;
-    }
-
-    uci_foreach_element(&p->sections, e) {
-        struct uci_section *s = uci_to_section(e);
-        if (!strcmp(s->type, "host")) {
-            const char *mac = uci_lookup_option_string(cursor, s, "mac");
-            if (mac)
-                allow_term(mac, false);
-        }
-    }
-
-    uci_free_context(cursor);
+    seq_printf(s, "enabled(RW) = %d\n", conf.enabled);
+    seq_printf(s, "interface(RW) = %s\n", conf.interface);
+    seq_printf(s, "ipaddr(RO) = %pI4\n", &conf.interface_ipaddr);
+    seq_printf(s, "netmask(RO) = %pI4\n", &conf.interface_mask);
+    seq_printf(s, "broadcast(RO) = %pI4\n", &conf.interface_broadcast);
+    seq_printf(s, "port(RW) = %d\n", conf.port);
+    seq_printf(s, "ssl_port(RW) = %d\n", conf.ssl_port);
 
     return 0;
 }
 
-struct config *get_config()
+static ssize_t proc_config_write(struct file *file, const char __user *buf, size_t size, loff_t *ppos)
+{
+    char data[128];
+    char *delim, *key;
+    const char *value;
+    int update = 0;
+
+    if (size == 0)
+        return -EINVAL;
+
+    if (size > sizeof(data))
+        size = sizeof(data);
+
+    if (copy_from_user(data, buf, size))
+        return -EFAULT;
+
+    data[size - 1] = 0;
+
+    key = data;
+    while (key && *key) {
+        while (*key && (*key == ' '))
+            key++;
+
+        delim = strchr(key, '=');
+        if (!delim)
+            break;
+
+        *delim++ = 0;
+        value = delim;
+
+        delim = strchr(value, '\n');
+        if (delim)
+            *delim++ = 0;
+
+        if (!strcmp(key, "enabled")) {
+            conf.enabled = simple_strtol(value, NULL, 0);
+            if (conf.enabled)
+                update = 1;
+            pr_info("wifidog %s\n", conf.enabled ? "enabled" : "disabled");
+        } else if (!strcmp(key, "interface")) {
+            strncpy(conf.interface, value, sizeof(conf.interface) - 1);
+            update = 1;
+        } else if (!strcmp(key, "port")) {
+            conf.port = simple_strtol(value, NULL, 0);
+        } else if (!strcmp(key, "ssl_port")) {
+            conf.ssl_port = simple_strtol(value, NULL, 0);
+        }
+
+        key = delim;
+    }
+
+    if (update)
+        update_gw_interface(conf.interface);
+    return size;
+}
+
+static int proc_config_open(struct inode *inode, struct file *file)
+{
+    return single_open(file, proc_config_show, NULL);
+}
+
+const static struct file_operations proc_config_ops = {
+    .owner      = THIS_MODULE,
+    .open       = proc_config_open,
+    .read       = seq_read,
+    .write      = proc_config_write,
+    .llseek     = seq_lseek,
+    .release    = single_release
+};
+
+int init_config(void)
+{
+    int ret = 0;
+
+    conf.interface_ifindex= -1;
+    conf.port = 2060;
+    conf.ssl_port = 8443;
+    strcpy(conf.interface, "br-lan");
+
+    proc = proc_mkdir(PROC_DIR_NAME, NULL);
+    if (!proc) {
+        pr_err("can't create dir /proc/"PROC_DIR_NAME"/\n");
+        return -ENODEV;;
+    }
+
+    if (!proc_create("config", 0644, proc, &proc_config_ops)) {
+        pr_err("can't create file /proc/"PROC_DIR_NAME"/config\n");
+        ret = -EINVAL;
+        goto remove;
+    }
+
+    return 0;
+
+remove:
+    remove_proc_entry(PROC_DIR_NAME, NULL);
+    return ret;
+}
+
+void deinit_config(void)
+{
+    remove_proc_entry("config", proc);
+    remove_proc_entry(PROC_DIR_NAME, NULL);
+}
+
+struct config *get_config(void)
 {
     return &conf;
-}
-
-static inline void alloc_authserver_option(char **option, const char *value)
-{
-    free(*option);
-    *option = strdup(value);
-}
-
-void reinit_config(const char *type, const char *option, const char *value)
-{
-    if (!strcmp(type, "authserver")) {
-        struct auth_server *authserver = &conf.authserver;
-
-        if (!strcmp(option, "host")) {
-            deny_domain(authserver->host);
-            alloc_authserver_option(&authserver->host, value);
-            allow_domain(authserver->host);
-        }
-        else if (!strcmp(option, "port"))
-            authserver->port = atoi(value);
-        else if (!strcmp(option, "path"))
-            alloc_authserver_option(&authserver->path, value);
-        else if (!strcmp(option, "login_path"))
-            alloc_authserver_option(&authserver->login_path, value);
-        else if (!strcmp(option, "portal_path"))
-            alloc_authserver_option(&authserver->portal_path, value);
-        else if (!strcmp(option, "msg_path"))
-            alloc_authserver_option(&authserver->msg_path, value);
-        else if (!strcmp(option, "ping_path"))
-            alloc_authserver_option(&authserver->ping_path, value);
-        else if (!strcmp(option, "auth_path"))
-            alloc_authserver_option(&authserver->auth_path, value);
-
-        init_authserver_url();
-    } else if (!strcmp(type, "gateway")) {
-        if (!strcmp(option, "checkinterval"))
-            conf.checkinterval = atoi(value);
-        else if (!strcmp(option, "temppass_time"))
-            conf.temppass_time = atoi(value);
-        else if (!strcmp(option, "client_timeout"))
-            conf.clienttimeout = atoi(value);
-    }
 }

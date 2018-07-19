@@ -1,78 +1,31 @@
 /*
- * Copyright (C) 2017 Jianhui Zhao <jianhuizhao329@gmail.com>
+ *  Copyright (C) 2017 jianhui zhao <jianhuizhao329@gmail.com>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
- * USA
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
  */
 
-#ifndef _CONFIG_H_
-#define _CONFIG_H_
+#ifndef __CONFIG_H_
+#define __CONFIG_H_
 
-#include <avl.h>
-#include <string.h>
-#include <stdlib.h>
+#include <linux/proc_fs.h>
 
-struct auth_server {
-    int port;
-    bool ssl;
-    char *host;
-    char *path;
-    char *login_path;
-    char *portal_path;
-    char *msg_path;
-    char *ping_path;
-    char *auth_path;
-};
-
-struct popular_server {
-    struct avl_node avl;
-    char host[0];
-};
-
-struct whitelist_domain {
-    struct avl_node avl;
-    char domain[0];
-};
+#define PROC_DIR_NAME "wifidog-ng"
 
 struct config {
-    const char *gw_interface;
-    const char *gw_address;
-    const char *gw_id;
-    const char *ssid;
-    int gw_port;
-    int gw_ssl_port;
-    int checkinterval;
-    int clienttimeout;
-    int temppass_time;
-    bool dhcp_host_white;
-
-    struct auth_server authserver;
-    struct avl_tree popular_servers;
-    struct avl_tree whitelist_domains;
-
-    char *login_url;
-    char *auth_url;
-    char *portal_url;
-    char *ping_url;
-    char *msg_url;
+    int enabled;
+    char interface[32];
+    int interface_ifindex;
+    __be32 interface_ipaddr;
+    __be32 interface_mask;
+    __be32 interface_broadcast;
+    int port;
+    int ssl_port;
 };
 
-int parse_config();
-int parse_dhcp_host();
-
-struct config *get_config();
-void reinit_config(const char *type, const char *option, const char *value);
+int init_config(void);
+void deinit_config(void);
+struct config *get_config(void);
 
 #endif

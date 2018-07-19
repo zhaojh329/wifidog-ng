@@ -19,15 +19,13 @@
 
 [libuhttpd]: https://github.com/zhaojh329/libuhttpd
 [libubox]: https://git.openwrt.org/?p=project/libubox.git
-[libuclient]: https://git.openwrt.org/?p=project/uclient.git
 [libuci]: https://git.openwrt.org/?p=project/uci.git
 [WifiDog]: https://github.com/wifidog/wifidog-gateway
-[c-ares]: https://github.com/c-ares/c-ares
 [rtty]: https://github.com/zhaojh329/rtty
 [ipset]: http://ipset.netfilter.org
-[libpcap]: http://www.us.tcpdump.org
+[luasocket]: https://github.com/diegonehab/luasocket
 
-WifiDog-ng一个非常高效的无线热点认证解决方案。
+WifiDog-ng一个非常高效的无线热点认证解决方案。使用Lua实现。
 
 `请保持关注以获取最新的项目动态`
 
@@ -42,11 +40,9 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 # 依赖
 * [libubox]
 * [libuhttpd]
-* [libuclient]
 * [libuci]
-* [c-ares]
 * [ipset]
-* [libpcap]
+* [luasocket]
 
 # 安装到OpenWRT
     opkg update
@@ -62,15 +58,14 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 | enabled        | bool        | no        | 0        | 是否开启wifidog-ng |
 | dhcp_host_white| bool        | no        | 1        | dhcp中的mac为白名单 |
 | id             | string      | no        |          | 网关ID，如果未设置，将使用ifname的macaddr |
-| ifname         | interface   | no        | br-lan   | wifidog-ng监听接口 |
+| interface      | Openwrt interface   | no        | lan   | wifidog-ng监听接口 |
 | port           | port number | no        | 2060     | wifidog-ng监听端口 |
 | ssl_port       | port number | no        | 8443     | wifidog-ng监听端口（ssl) |
 | ssid           | ssid        | no        |          | 用于微信认证 |
-| checkinterval  | seconds     | no        | 30       | 超时检查时间间隔。也作为心跳间隔，以及流量统计间隔 |
+| checkinterval  | seconds     | no        | 30       | 心跳间隔 |
 | temppass_time  | seconds     | no        | 30       | 临时放行时间 |
-| client_timeout | seconds     | no        | 5        | 客户端超时下线时间：checkinterval * client_timeout |
 
-## Section authserver
+## Section server
 | 名称        | 类型        | 是否必须  | 默认值          |
 | ----------- | ----------- | --------- | --------------- |
 | host        | string      | yes       | no              |
@@ -83,20 +78,18 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 | ping_path   | string      | no        | ping            |
 | auth_path   | string      | no        | auth            |
 
-## Section popularserver
-| 名称    | 类型 | 是否必须  | 默认值                    |
-| ------- | ---- | --------- | -------------------------- |
-| server  | list | no        | `www.baidu.com www.qq.com` |
+## Section validated_user
 
-## Section whitelist_mac
-| 名称   | 类型   | 描述                    |
-| ------ | ------ | ---------------------- |
-| mac    | string | mac 地址               |
+| 名称    | 类型   | 描述                   |
+| ------- | ------ | --------------------- |
+| mac     | string | mac地址               |
+| comment | string | 注释                  |
 
-## Section whitelist_domain
-| 名称   | 类型   | 描述                    |
-| ------ | ------ | ---------------------- |
-| domain | string | 可以是一个域名或者ip地址 |
+## Section validated_domain
+| 名称   | 类型    | 描述                    |
+| ------ | ------- | ---------------------- |
+| domain | string  | 可以是一个域名或者ip地址 |
+| comment | string | 注释                    |
 
 # 协议
 ## 网关心跳
@@ -108,7 +101,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 `http://authserver/wifidog/login?gw_address=xx&gw_port=xx&gw_id=xx&ip=xx&mac=xx&ssid=xx`
 
 ## 认证
-`http://gw_address:gw_port/wifidog/auth?token=xx`
+`http://gw_address:gw_port/auth?token=xx`
 
 ## 认证确认
 `http://authserver/wifidog/auth?stage=login&ip=xx&mac=xx&token=xx&incoming=xx&outgoing=xx`
@@ -120,45 +113,8 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。
 
 认证服务器应返回：""token=xxxxxxx" 或者其它任意字符串
 
-## 流量统计(POST)
-`http://authserver/wifidog/auth/?stage=counters&gw_id=xx`
-
-```
-{
-    "counters":[{
-        "ip": "192.168.1.201",
-        "mac": "xx:xx:xx:xx:xx:xx",
-        "token": "eb6d8d7f5ad6f35553a40f66cd2bff70",
-        "incoming": 4916,
-        "outgoing": 20408,
-        "uptime": 23223
-    }, {
-        "ip": "192.168.1.202",
-        "mac": "xx:xx:xx:xx:xx:xx",
-        "token": "eb6d8d7f5ad6f35553a40f66cd2bff70",
-        "incoming": 4916,
-        "outgoing": 20408,
-        "uptime": 23223
-    }]
-}
-```
-
-认证服务器应返回如下格式：
-
-```
-{
-    "resp":[{
-        "mac": "0c:1d:ff:c4:db:fc",
-        "auth": 1
-    }, {
-        "mac": "0c:1d:cf:c4:db:fc",
-        "auth": 0
-    }]
-}
-```
-
 ## 临时放行
-`http://gw_address:gw_port/wifidog/temppass?script=startWeChatAuth();`
+`http://gw_address:gw_port/temppass?script=startWeChatAuth();`
 
 # [测试服务器](https://github.com/zhaojh329/wifidog-ng-authserver)
 
@@ -168,7 +124,6 @@ wifidog-ng提供了UBUS配置接口，借助[rtty]的远程执行命令功能即
     # ubus -v list wifidog-ng
     'wifidog-ng' @5903037c
         "term":{"action":"String","mac":"String"}
-        "config":{"type":"String","options":"Table"}
         "whitelist":{"action":"String","domain":"String","mac":"String"}
 
 ## 放行客户端
@@ -194,10 +149,6 @@ wifidog-ng提供了UBUS配置接口，借助[rtty]的远程执行命令功能即
 ## 删除MAC白名单
 
     ubus call wifidog-ng whitelist '{"action":"del", "type":"mac", "value":"11:22:33:44:55:66"}'
-
-## 查看终端列表
-
-    ubus call wifidog-ng term '{"action":"show"}'
 
 ## 远程配置示例
 
