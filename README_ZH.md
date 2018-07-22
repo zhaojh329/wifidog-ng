@@ -18,9 +18,8 @@
 [![Build Status][9]][10]
 
 [libuhttpd]: https://github.com/zhaojh329/libuhttpd
-[libubox]: https://git.openwrt.org/?p=project/libubox.git
-[libuci]: https://git.openwrt.org/?p=project/uci.git
-[WifiDog]: https://github.com/wifidog/wifidog-gateway
+[libubox-lua]: https://git.openwrt.org/?p=project/libubox.git
+[libuci-lua]: https://git.openwrt.org/?p=project/uci.git
 [rtty]: https://github.com/zhaojh329/rtty
 [ipset]: http://ipset.netfilter.org
 [luasocket]: https://github.com/diegonehab/luasocket
@@ -38,9 +37,9 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。使用Lua实现�
 * 代码结构清晰，通俗易懂
 
 # 依赖
-* [libubox]
+* [libubox-lua]
 * [libuhttpd]
-* [libuci]
+* [libuci-lua]
 * [ipset]
 * [luasocket]
 

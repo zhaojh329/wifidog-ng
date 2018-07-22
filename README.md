@@ -18,14 +18,13 @@
 [![Build Status][9]][10]
 
 [libuhttpd]: https://github.com/zhaojh329/libuhttpd
-[libubox]: https://git.openwrt.org/?p=project/libubox.git
-[libuci]: https://git.openwrt.org/?p=project/uci.git
-[WifiDog]: https://github.com/wifidog/wifidog-gateway
+[libubox-lua]: https://git.openwrt.org/?p=project/libubox.git
+[libuci-lua]: https://git.openwrt.org/?p=project/uci.git
 [rtty]: https://github.com/zhaojh329/rtty
 [ipset]: http://ipset.netfilter.org
 [luasocket]: https://github.com/diegonehab/luasocket
 
-Next generation [WifiDog]
+Next generation WifiDog
 
 WifiDog-ng is a very efficient captive portal solution for wireless router which with
 embedded linux(LEDE/Openwrt) system implemented in Lua.
@@ -41,9 +40,9 @@ embedded linux(LEDE/Openwrt) system implemented in Lua.
 * Code structure is concise and understandable
 
 # Dependencies
-* [libubox]
+* [libubox-lua]
 * [libuhttpd]
-* [libuci]
+* [libuci-lua]
 * [ipset]
 * [luasocket]
 
