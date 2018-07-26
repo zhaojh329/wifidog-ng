@@ -20,6 +20,7 @@
 [libuhttpd]: https://github.com/zhaojh329/libuhttpd
 [libubox-lua]: https://git.openwrt.org/?p=project/libubox.git
 [libuci-lua]: https://git.openwrt.org/?p=project/uci.git
+[libubus-lua]: https://git.openwrt.org/?p=project/ubus.git
 [rtty]: https://github.com/zhaojh329/rtty
 [ipset]: http://ipset.netfilter.org
 [luasocket]: https://github.com/diegonehab/luasocket
@@ -29,6 +30,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。使用Lua实现�
 `请保持关注以获取最新的项目动态`
 
 # 特性
+* 采用Lua编写，即改即得，开发效率非常高
 * 使用epoll - 基于[libubox]：单线程，全异步
 * 使用ipset以及编写内核模块实现认证管理，而不是使用iptables创建防火墙规则
 * 支持HTTPS：OpenSSL, mbedtls and CyaSSl(wolfssl)
@@ -40,6 +42,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。使用Lua实现�
 * [libubox-lua]
 * [libuhttpd]
 * [libuci-lua]
+* [libubus-lua]
 * [ipset]
 * [luasocket]
 

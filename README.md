@@ -20,6 +20,7 @@
 [libuhttpd]: https://github.com/zhaojh329/libuhttpd
 [libubox-lua]: https://git.openwrt.org/?p=project/libubox.git
 [libuci-lua]: https://git.openwrt.org/?p=project/uci.git
+[libubus-lua]: https://git.openwrt.org/?p=project/ubus.git
 [rtty]: https://github.com/zhaojh329/rtty
 [ipset]: http://ipset.netfilter.org
 [luasocket]: https://github.com/diegonehab/luasocket
@@ -32,6 +33,7 @@ embedded linux(LEDE/Openwrt) system implemented in Lua.
 `Keep Watching for More Actions on This Space`
 
 # Features
+* Written in Lua, so development is very efficient
 * Use epoll - Based on [libubox]: Single threaded, Fully asynchronous, No blocking operation at all
 * Use ipset and writing kernel module to implement authentication management instead of using iptables to create firewall rules
 * Support HTTPS: OpenSSL, mbedtls and CyaSSl(wolfssl)
@@ -43,6 +45,7 @@ embedded linux(LEDE/Openwrt) system implemented in Lua.
 * [libubox-lua]
 * [libuhttpd]
 * [libuci-lua]
+* [libubus-lua]
 * [ipset]
 * [luasocket]
 
