@@ -18,7 +18,6 @@
  --]]
 
 local uh = require "uhttpd"
-local cjson = require "cjson"
 local http = require "socket.http"
 local util = require "wifidog-ng.util"
 local config = require "wifidog-ng.config"

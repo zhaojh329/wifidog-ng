@@ -19,7 +19,6 @@
   USA
  --]]
 
-local cjson = require "cjson"
 local uloop = require "uloop"
 local uh = require "uhttpd"
 local auth = require "wifidog-ng.auth"
