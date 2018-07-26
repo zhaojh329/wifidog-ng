@@ -29,7 +29,7 @@ function M.parse()
 
     c:foreach('wifidog-ng', 'gateway', function(s)
         local port = s.port or 2060
-        local ssl_port = s.port or 8443
+        local ssl_port = s.ssl_port or 8443
         local interface = s.interface or "lan"
         local checkinterval = s.checkinterval or 30
         local client_timeout = s.client_timeout or 5
