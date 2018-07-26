@@ -23,7 +23,10 @@ local http = require "socket.http"
 local auth = require "wifidog-ng.auth"
 local config = require "wifidog-ng.config"
 
+
 local M = {}
+
+local conn = nil
 
 local ubus_codes = {
     ["INVALID_COMMAND"] = 1,
@@ -71,6 +74,11 @@ local methods = {
         },
         term = {
             function(req, msg)
+                if msg.action == "show" then
+                    conn:reply(req, {terms = auth.get_terms()});
+                    return
+                end
+
                 if not msg.action or not msg.mac then
                     return ubus_codes["INVALID_ARGUMENT"]
                 end
@@ -109,7 +117,7 @@ local methods = {
 }
 
 function M.init()
-    local conn = ubus.connect()
+    conn = ubus.connect()
     if not conn then
         error("Failed to connect to ubus")
     end

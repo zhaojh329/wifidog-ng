@@ -38,6 +38,7 @@ end
 
 local function allow_user(mac, temppass)
     if not temppass then
+        terms[mac].authed = true
         os.execute("ipset add wifidog-ng-mac " .. mac)
     else
         local cfg = config.get()
@@ -47,6 +48,17 @@ end
 
 local function deny_user(mac)
     os.execute("ipset del wifidog-ng-mac " .. mac)
+end
+
+function M.get_terms()
+    local r = {}
+    for k, v in pairs(terms) do
+        if v.authed then
+            r[k] = {ip = v.ip}
+        end
+    end
+
+    return r
 end
 
 function M.new_term(ip, mac, token)
