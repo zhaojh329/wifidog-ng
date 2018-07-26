@@ -103,7 +103,7 @@ To this the auth server is expected to respond with an http message containing t
 `http://authserver/wifidog/login?gw_address=xx&gw_port=xx&gw_id=xx&ip=xx&mac=xx&ssid=xx`
 
 ## Auth
-`http://gw_address:gw_port/auth?token=xx`
+`http://gw_address:gw_port/wifidog/auth?token=xx`
 
 ## Auth confirm
 `http://authserver/wifidog/auth?stage=login&ip=xx&mac=xx&token=xx&incoming=xx&outgoing=xx`
@@ -116,7 +116,7 @@ The response of the auth server should be "Auth: 1" or "Auth: 0"
 The response of the auth server should be "token=xxxxxxx" or other.
 
 ## Temporary pass
-`http://gw_address:gw_port/temppass?script=startWeChatAuth();`
+`http://gw_address:gw_port/wifidog/temppass?script=startWeChatAuth();`
 
 # [Test Server](https://github.com/zhaojh329/wifidog-ng-authserver)
 

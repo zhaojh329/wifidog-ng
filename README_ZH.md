@@ -100,7 +100,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。使用Lua实现�
 `http://authserver/wifidog/login?gw_address=xx&gw_port=xx&gw_id=xx&ip=xx&mac=xx&ssid=xx`
 
 ## 认证
-`http://gw_address:gw_port/auth?token=xx`
+`http://gw_address:gw_port/wifidog/auth?token=xx`
 
 ## 认证确认
 `http://authserver/wifidog/auth?stage=login&ip=xx&mac=xx&token=xx&incoming=xx&outgoing=xx`
@@ -113,7 +113,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。使用Lua实现�
 认证服务器应返回：""token=xxxxxxx" 或者其它任意字符串
 
 ## 临时放行
-`http://gw_address:gw_port/temppass?script=startWeChatAuth();`
+`http://gw_address:gw_port/wifidog/temppass?script=startWeChatAuth();`
 
 # [测试服务器](https://github.com/zhaojh329/wifidog-ng-authserver)
 

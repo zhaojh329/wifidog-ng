@@ -180,9 +180,9 @@ local function http_callback_404(cl, path)
 end
 
 local function on_request(cl, path)
-    if path == "/auth" then
+    if path == "/wifidog/auth" then
         return http_callback_auth(cl)
-    elseif path == "/temppass" then
+    elseif path == "/wifidog/temppass" then
         return http_callback_temppass(cl)
     end
 
