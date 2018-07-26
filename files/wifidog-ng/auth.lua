@@ -143,7 +143,7 @@ local function http_callback_404(cl, path)
 
     term = terms[mac]
 
-    if is_authed_user(term.mac) then
+    if is_authed_user(mac) then
         cl:redirect(302, "%s&mac=%s", cfg.portal_url, mac)
         return uh.REQUEST_DONE
     end
