@@ -40,11 +40,11 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。使用Lua实现�
 
 # 依赖
 * [libubox-lua]
-* [libuhttpd]
-* [libuci-lua]
 * [libubus-lua]
-* [ipset]
+* [libuci-lua]
+* [libuhttpd]
 * [luasocket]
+* [ipset]
 
 # 安装到OpenWRT
     opkg update

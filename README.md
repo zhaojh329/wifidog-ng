@@ -43,11 +43,11 @@ embedded linux(LEDE/Openwrt) system implemented in Lua.
 
 # Dependencies
 * [libubox-lua]
-* [libuhttpd]
-* [libuci-lua]
 * [libubus-lua]
-* [ipset]
+* [libuci-lua]
+* [libuhttpd]
 * [luasocket]
+* [ipset]
 
 # Install on OpenWrt
     opkg update
