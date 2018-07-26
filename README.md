@@ -131,6 +131,10 @@ wifidog-ng provides the UBUS configuration interface and then remotely configuri
         "term":{"action":"String","mac":"String"}
         "whitelist":{"action":"String","domain":"String","mac":"String"}
 
+## Show all clients
+
+    ubus call wifidog-ng term '{"action":"show"}'
+
 ## Allow client
 
     ubus call wifidog-ng term '{"action":"add", "mac":"11:22:33:44:55:66"}'

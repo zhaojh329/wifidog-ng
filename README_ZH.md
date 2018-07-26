@@ -128,6 +128,10 @@ wifidog-ng提供了UBUS配置接口，借助[rtty]的远程执行命令功能即
         "term":{"action":"String","mac":"String"}
         "whitelist":{"action":"String","domain":"String","mac":"String"}
 
+## 列出所有客户端
+
+    ubus call wifidog-ng term '{"action":"show"}'
+
 ## 放行客户端
 
     ubus call wifidog-ng term '{"action":"add", "mac":"11:22:33:44:55:66"}'
