@@ -25,7 +25,7 @@ define Package/wifidog-ng/default
   SECTION:=net
   CATEGORY:=Network
   TITLE:=Next generation WifiDog implemented in Lua
-  DEPENDS:=+kmod-wifidog-ng +libubox-lua +libuci-lua +libubus-lua +lua-cjson \
+  DEPENDS:=+kmod-wifidog-ng +libubox-lua +libuci-lua +libubus-lua \
 	  +ipset +dnsmasq-full +luasocket
 endef
 
