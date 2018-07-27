@@ -6,16 +6,13 @@
 [4]: https://github.com/zhaojh329/wifidog-ng/pulls
 [5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
 [6]: https://github.com/zhaojh329/wifidog-ng/issues/new
-[7]: https://img.shields.io/badge/release-1.5.6-blue.svg?style=plastic
+[7]: https://img.shields.io/badge/release-2.0.0-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/wifidog-ng/releases
-[9]: https://travis-ci.org/zhaojh329/wifidog-ng.svg?branch=master
-[10]: https://travis-ci.org/zhaojh329/wifidog-ng
 
 [![license][1]][2]
 [![PRs Welcome][3]][4]
 [![Issue Welcome][5]][6]
 [![Release Version][7]][8]
-[![Build Status][9]][10]
 
 [libuhttpd]: https://github.com/zhaojh329/libuhttpd
 [libubox-lua]: https://git.openwrt.org/?p=project/libubox.git
@@ -46,12 +43,7 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。使用Lua实现�
 * [luasocket]
 * [ipset]
 
-# 安装到OpenWRT
-    opkg update
-    opkg list | grep wifidog-ng
-    opkg install wifidog-ng-nossl
-
-如果安装失败，你可以[自己编译](/BUILDOPENWRT_ZH.md)。
+# [编译](/BUILD.md)
 
 # UCI配置选项
 ## Section gateway
