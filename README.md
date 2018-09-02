@@ -172,6 +172,8 @@ wifidog-ng provides the UBUS configuration interface and then remotely configuri
 
 # Who's using wifidog-ng
 
+# [Donate](https://gitee.com/zhaojh329/wifidog-ng#project-donate-overview)
+
 # Contributing
 If you would like to help making [wifidog-ng](https://github.com/zhaojh329/wifidog-ng) better,
 see the [CONTRIBUTING.md](https://github.com/zhaojh329/wifidog-ng/blob/master/CONTRIBUTING.md) file.

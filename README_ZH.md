@@ -169,6 +169,8 @@ wifidog-ng提供了UBUS配置接口，借助[rtty]的远程执行命令功能即
 
 # 谁在使用wifidog-ng
 
+# [捐赠](https://gitee.com/zhaojh329/wifidog-ng#project-donate-overview)
+
 # 贡献代码
 如果你想帮助[wifidog-ng](https://github.com/zhaojh329/wifidog-ng)变得更好，请参考
 [CONTRIBUTING_ZH.md](https://github.com/zhaojh329/wifidog-ng/blob/master/CONTRIBUTING_ZH.md)。
