@@ -104,55 +104,44 @@ function M.get()
     return cfg
 end
 
-function M.add_whitelist(typ, value)
-    local c = uci.cursor()
-    local opt
-
-    if typ == "mac" then
-        typ = "validated_user"
-        opt = "mac"
-    elseif typ == "domain" then
-        typ = "validated_domain"
-        opt = "domain"
+local function is_ip(host)
+    local a, b, c, d = host:match("(%d+).(%d+).(%d+).(%d+)")
+    if a and b and c and d then
+        return true
     else
-        return
-    end
-
-    local exist = false
-    c:foreach("wifidog-ng", typ, function(s)
-        if s[opt] == value then
-            exist = true
-        end
-    end)
-
-    if not exist then
-        local s = c:add("wifidog-ng", typ)
-        c:set("wifidog-ng", s, opt, value)
-        c:commit("wifidog-ng")
+        return false
     end
 end
 
-function M.del_whitelist(typ, value)
+function M.reload()
     local c = uci.cursor()
-    local opt
 
-    if typ == "mac" then
-        typ = "validated_user"
-        opt = "mac"
-    elseif typ == "domain" then
-        typ = "validated_domain"
-        opt = "domain"
-    else
-        return
-    end
+    M.parse()
 
-    c:foreach("wifidog-ng", typ, function(s)
-        if s[opt] == value then
-            c:delete("wifidog-ng", s[".name"])
+    os.execute("echo > /tmp/dnsmasq.d/wifidog-ng")
+
+    c:foreach('wifidog-ng', 'validated_user', function(s)
+        if s.mac then
+            os.execute("ipset add wifidog-ng-mac " .. s.mac)
         end
     end)
 
-    c:commit("wifidog-ng")
+    c:foreach('wifidog-ng', 'server', function(s)
+        local host = s.host
+        if not host then return end
+
+        if is_ip(host) then
+            os.execute("ipset add wifidog-ng-ip " .. host)
+        else
+            os.execute(string.format("echo 'ipset=/%s/wifidog-ng-ip' >> /tmp/dnsmasq.d/wifidog-ng", host))
+        end
+    end)
+
+    c:foreach('wifidog-ng', 'validated_domain', function(s)
+        if s.domain then
+            os.execute(string.format("echo 'ipset=/%s/wifidog-ng-ip' >> /tmp/dnsmasq.d/wifidog-ng", s.domain))
+        end
+    end)
 end
 
 return M

@@ -98,10 +98,10 @@ function Request:error_403(req)
 end
 
 local function parse_params(req)
-    if not req.parsed_url.query then return nil end
-
     local params = {}
     req.params = params
+
+    if not req.parsed_url.query then return end
 
     for parm in string.gmatch(req.parsed_url.query, "([^&]+)") do
         local k,v = string.match (parm, "(.*)=(.*)")

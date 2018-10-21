@@ -1,3 +1,8 @@
 [ "$ACTION" = "add" -o "$ACTION" = "update" ] || exit 0
-ubus list wifidog-ng > /dev/null 2>&1 || exit 0
-ubus call wifidog-ng roam "{\"mac\":\"$MACADDR\", \"ip\":\"$IPADDR\"}"
+
+addr=$(uci get network.lan.ipaddr)
+
+port=$(uci -q get wifidog-ng.@gateway[0].port)
+[ -z "$port" ] && exit 0
+
+wget "http://$addr:$port/wifidog/ctl?op=roam&ip=$IPADDR&mac=$MACADDR" -O /dev/null &

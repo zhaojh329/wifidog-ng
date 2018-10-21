@@ -24,6 +24,8 @@ local auth = require "wifidog-ng.auth"
 local version = require "wifidog-ng.version"
 local heartbeat = require "wifidog-ng.heartbeat"
 
+print("version:", version.string())
+
 auth.init()
 heartbeat.start()
 

@@ -62,7 +62,7 @@ function M.get_terms()
     return r
 end
 
-function M.new_term(ip, mac, token)
+local function new_term(ip, mac, token)
     terms[mac] = {ip = ip, token = token}
     if token then
         terms[mac].authed = true
@@ -196,16 +196,52 @@ local function http_callback_404(req)
     req:send(content)
 end
 
+local function http_callback_ctl(req)
+    local params = req.params
+    local op = params["op"]
+
+    if op == "roam" then
+        local cfg = config.get()
+        local ip, mac = params["ip"], params["mac"]
+
+        if ip and mac then
+            local url = string.format("%s&stage=roam&ip=%s&mac=%s", cfg.auth_url, ip, mac)
+            local r = http.request(url) or ""
+            local token = r:match("token=(%w+)")
+            if token then
+                new_term(ip, mac, token)
+            end
+        end
+    elseif op == "kick" then
+        local mac = params["mac"]
+        if mac then
+            deny_user(mac)
+        end
+    elseif op == "reload" then
+        config.reload()
+    end
+
+    local content = "OK"
+    local headers = {
+        ["Content-Type"] = "text/plain",
+        ["Content-Length"] = #content
+    }
+    req:send_head(200, headers)
+    req:send(content)
+end
+
 function M.init()
     local cfg = config.get()
 
     local handlers = {
         ["404"] = http_callback_404,
         ["/wifidog/temppass"] = http_callback_temppass,
-        ["/wifidog/auth"] = http_callback_auth
+        ["/wifidog/auth"] = http_callback_auth,
+        ["/wifidog/ctl"] = http_callback_ctl
     }
 
     httpd.new(cfg.gw_address, cfg.gw_port, handlers)
+    print("Listen on:", cfg.gw_address, cfg.gw_port)
 
     httpd.new(cfg.gw_address, cfg.gw_ssl_port, handlers, {
         ssl = {
@@ -215,6 +251,7 @@ function M.init()
             certificate = "/etc/wifidog-ng/ssl.crt"
         }
     })
+    print("Listen on:", cfg.gw_address, cfg.gw_ssl_port)
 end
 
 return M
