@@ -14,14 +14,6 @@
 [![Issue Welcome][5]][6]
 [![Release Version][7]][8]
 
-[libuhttpd]: https://github.com/zhaojh329/libuhttpd
-[libubox-lua]: https://git.openwrt.org/?p=project/libubox.git
-[libuci-lua]: https://git.openwrt.org/?p=project/uci.git
-[libubus-lua]: https://git.openwrt.org/?p=project/ubus.git
-[rtty]: https://github.com/zhaojh329/rtty
-[ipset]: http://ipset.netfilter.org
-[luasocket]: https://github.com/diegonehab/luasocket
-
 Next generation WifiDog
 
 WifiDog-ng is a very efficient captive portal solution for wireless router which with
@@ -37,14 +29,6 @@ embedded linux(LEDE/Openwrt) system implemented in Lua.
 * Remote configuration(With the help of [rtty])
 * Support roam
 * Code structure is concise and understandable
-
-# Dependencies
-* [libubox-lua]
-* [libubus-lua]
-* [libuci-lua]
-* [libuhttpd]
-* [luasocket]
-* [ipset]
 
 # [Build](/BUILD.md)
 
@@ -115,62 +99,18 @@ The response of the auth server should be "token=xxxxxxx" or other.
 
 # [Test Server](https://github.com/zhaojh329/wifidog-ng-authserver)
 
-# Remote configuration(First install [rtty])
-wifidog-ng provides the UBUS configuration interface and then remotely configuring the wifidog-ng with the help of the remote execution command of the [rtty]
+# Manage
+## Kick off the term
 
-    # ubus -v list wifidog-ng
-    'wifidog-ng' @5903037c
-        "term":{"action":"String","mac":"String"}
-        "whitelist":{"action":"String","domain":"String","mac":"String"}
+    wget "http://lanip:2060/wifidog/ctl?op=kick&mac=0C:1D:AF:C4:DB:FC" -O /dev/null
 
-## Show all clients
+## Relaod config
 
-    ubus call wifidog-ng term '{"action":"show"}'
+    wget "http://lanip:2060/wifidog/ctl?op=reload" -O /dev/null
 
-## Allow client
+## Show device
 
-    ubus call wifidog-ng term '{"action":"add", "mac":"11:22:33:44:55:66"}'
-
-## Kick off client
-
-    ubus call wifidog-ng term '{"action":"del", "mac":"11:22:33:44:55:66"}'
-
-## Add domain whitelist
-
-    ubus call wifidog-ng whitelist '{"action":"add", "type":"domain", "value":"qq.com"}'
-
-## Delete domain whitelist
-
-    ubus call wifidog-ng whitelist '{"action":"del", "type":"domain", "value":"qq.com"}'
-
-## Add macaddr whitelist
-
-    ubus call wifidog-ng whitelist '{"action":"add", "type":"mac", "value":"11:22:33:44:55:66"}'
-
-## Delete macaddr whitelist
-
-    ubus call wifidog-ng whitelist '{"action":"del", "type":"mac", "value":"11:22:33:44:55:66"}'
-
-## Remote configuration example
-
-    #!/bin/sh
-
-    host="your-rtty-server.com"
-    port=5912
-    devid="test"
-    username="root"
-    password="123456"
-    action="add"
-    domain="www.163.com"
-
-    params="[\"call\", \"wifidog-ng\", \"whitelist\", \"{\\\"action\\\":\\\"$action\\\", \\\"domain\\\":\\\"$domain\\\"}\"]"
-
-    data="{\"devid\":\"$devid\",\"username\":\"$username\",\"password\":\"$password\",\"cmd\":\"ubus\",\"params\":$params}"
-
-    echo $data
-    curl -k "https://$host:$port/cmd" -d "$data"
-
-# Who's using wifidog-ng
+    ipset list wifidog-ng-mac
 
 # [Donate](https://gitee.com/zhaojh329/wifidog-ng#project-donate-overview)
 

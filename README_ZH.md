@@ -14,34 +14,15 @@
 [![Issue Welcome][5]][6]
 [![Release Version][7]][8]
 
-[libuhttpd]: https://github.com/zhaojh329/libuhttpd
-[libubox-lua]: https://git.openwrt.org/?p=project/libubox.git
-[libuci-lua]: https://git.openwrt.org/?p=project/uci.git
-[libubus-lua]: https://git.openwrt.org/?p=project/ubus.git
-[rtty]: https://github.com/zhaojh329/rtty
-[ipset]: http://ipset.netfilter.org
-[luasocket]: https://github.com/diegonehab/luasocket
-
 WifiDog-ng一个非常高效的无线热点认证解决方案。使用Lua实现。
 
 `请保持关注以获取最新的项目动态`
 
 # 特性
 * 采用Lua编写，即改即得，开发效率非常高
-* 使用epoll - 基于[libubox]：单线程，全异步
 * 使用ipset以及编写内核模块实现认证管理，而不是使用iptables创建防火墙规则
-* 支持HTTPS：OpenSSL, mbedtls and CyaSSl(wolfssl)
-* 远程配置(借助[rtty])
 * 支持漫游
 * 代码结构清晰，通俗易懂
-
-# 依赖
-* [libubox-lua]
-* [libubus-lua]
-* [libuci-lua]
-* [libuhttpd]
-* [luasocket]
-* [ipset]
 
 # [编译](/BUILD.md)
 
@@ -112,60 +93,18 @@ WifiDog-ng一个非常高效的无线热点认证解决方案。使用Lua实现�
 
 # [测试服务器](https://github.com/zhaojh329/wifidog-ng-authserver)
 
-# 远程配置(首先安装[rtty])
-wifidog-ng提供了UBUS配置接口，借助[rtty]的远程执行命令功能即可实现对wifidog-ng的远程配置
+# 管理
+## 踢终端下线
 
-    # ubus -v list wifidog-ng
-    'wifidog-ng' @5903037c
-        "term":{"action":"String","mac":"String"}
-        "whitelist":{"action":"String","domain":"String","mac":"String"}
+    wget "http://lanip:2060/wifidog/ctl?op=kick&mac=0C:1D:AF:C4:DB:FC" -O /dev/null
 
-## 列出所有客户端
+## 重载配置
 
-    ubus call wifidog-ng term '{"action":"show"}'
+    wget "http://lanip:2060/wifidog/ctl?op=reload" -O /dev/null
 
-## 放行客户端
+## 查看在线终端
 
-    ubus call wifidog-ng term '{"action":"add", "mac":"11:22:33:44:55:66"}'
-
-## 踢客户端下线
-
-    ubus call wifidog-ng term '{"action":"del", "mac":"11:22:33:44:55:66"}'
-
-## 添加域名白名单
-
-    ubus call wifidog-ng whitelist '{"action":"add", "type":"domain", "value":"qq.com"}'
-
-## 删除域名白名单
-
-    ubus call wifidog-ng whitelist '{"action":"del", "type":"domain", "value":"qq.com"}'
-
-## 添加MAC白名单
-
-    ubus call wifidog-ng whitelist '{"action":"add", "type":"mac", "value":"11:22:33:44:55:66"}'
-
-## 删除MAC白名单
-
-    ubus call wifidog-ng whitelist '{"action":"del", "type":"mac", "value":"11:22:33:44:55:66"}'
-
-## 远程配置示例
-
-    #!/bin/sh
-
-    host="your-rtty-server.com"
-    port=5912
-    devid="test"
-    username="root"
-    password="123456"
-    action="add"
-    domain="www.163.com"
-
-    params="[\"call\", \"wifidog-ng\", \"whitelist\", \"{\\\"action\\\":\\\"$action\\\", \\\"domain\\\":\\\"$domain\\\"}\"]"
-
-    data="{\"devid\":\"$devid\",\"username\":\"$username\",\"password\":\"$password\",\"cmd\":\"ubus\",\"params\":$params}"
-
-    echo $data
-    curl -k "https://$host:$port/cmd" -d "$data"
+    ipset list wifidog-ng-mac
 
 # 谁在使用wifidog-ng
 
