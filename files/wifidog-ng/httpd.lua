@@ -32,6 +32,71 @@ function _M.strsplit (str)
     return words
 end
 
+local Request = {}
+
+function Request:new(host, port, socket)
+    local req = {
+        host = host,
+        port = port,
+        socket = socket
+    }
+    setmetatable(req, self)
+    self.__index  = self
+    return req
+end
+
+function Request:receive()
+    return self.socket:receive()
+end
+
+function Request:send(data)
+    return self.socket:send(data)
+end
+
+local status = {
+    [200] = "OK",
+    [404] = "Not Found",
+    [302] = "Found",
+    [403] = "Forbidden"
+}
+
+function Request:send_head(code, headers)
+    self:send(string.format("HTTP/1.1 %d %s\n", code, status[code]))
+    self:send("Server: wifidog-ng\n")
+
+    for k, v in pairs(headers) do
+        self:send(string.format("%s: %s\n", k, v))
+    end
+    self:send("\n")
+end
+
+function Request:redirect(d)
+    local content = "redirect"
+    local headers = {
+        ["Content-Type"] = "text/plain",
+        ["Content-Length"] = #content,
+        ["Location"] = d
+    }
+
+    self:send_head(302, headers)
+    self:send(content)
+end
+
+function Request:error_403(req)
+    local content = [[<html>
+<head><title>403 Forbidden</title></head>
+<body><center><h1>Forbidden</h1></center></body>
+</html>]]
+
+    local headers = {
+        ["Content-Type"] = "text/html",
+        ["Content-Length"] = #content
+    }
+
+    self:send_head(403, headers)
+    self:send(content)
+end
+
 local function parse_params(req)
     if not req.parsed_url.query then return nil end
 
@@ -76,7 +141,7 @@ end
 --              req.url: url requested (as sent by the client)
 --              req.version: http version (usually 'HTTP/1.1')
 local function parse_request_line(req)
-    local line, err = req.socket:receive()
+    local line, err = req:receive()
 
     if not line then return nil end
 
@@ -97,7 +162,7 @@ local function parse_headers(req)
     local prevval, prevname
 
     while true do
-        local l, err = req.socket:receive()
+        local l, err = req:receive()
         if not l or l == "" then
             req.headers = headers
             return
@@ -118,67 +183,19 @@ local function parse_headers(req)
     end
 end
 
-local status = {
-    [200] = "OK",
-    [404] = "Not Found",
-    [302] = "Found",
-    [403] = "Forbidden"
-}
-
-function _M.send_head(req, code, headers)
-    local skt = req.socket
-    skt:send(string.format("HTTP/1.1 %d %s\n", code, status[code]))
-    skt:send("Server: wifidog-ng\n")
-
-    for k, v in pairs(headers) do
-        skt:send(string.format("%s: %s\n", k, v))
-    end
-    skt:send("\n")
-end
-
 function _M.handler_404(req)
     local content = [[<html>
 <head><title>404 Not Found</title></head>
 <body><center><h1>404 Not Found</h1></center></body>
 </html>]]
 
-    local skt = req.socket
     local headers = {
         ["Content-Type"] = "text/html",
         ["Content-Length"] = #content
     }
 
-    _M.send_head(req, 404, headers)
-    skt:send(content)
-end
-
-function _M.redirect(req, d)
-    local skt = req.socket
-    local content = "redirect"
-    local headers = {
-        ["Content-Type"] = "text/plain",
-        ["Content-Length"] = #content,
-        ["Location"] = d
-    }
-
-    _M.send_head(req, 302, headers)
-    skt:send(content)
-end
-
-function _M.error_403(req)
-    local content = [[<html>
-<head><title>403 Forbidden</title></head>
-<body><center><h1>Forbidden</h1></center></body>
-</html>]]
-
-    local skt = req.socket
-    local headers = {
-        ["Content-Type"] = "text/html",
-        ["Content-Length"] = #content
-    }
-
-    _M.send_head(req, 403, headers)
-    skt:send(content)
+    req:send_head(404, headers)
+    req:send(content)
 end
 
 function _M.new(host, port, handlers, cfg)
@@ -200,11 +217,7 @@ function _M.new(host, port, handlers, cfg)
             skt = copas.wrap(skt)
         end
 
-        local req = {
-            host = host,
-            port = port,
-            socket = skt
-        }
+        local req = Request:new(host, port, skt)
 
         while parse_request_line(req) do
             parse_headers(req)

@@ -78,7 +78,7 @@ local function http_callback_auth(req)
     local mac = util.arp_get(cfg.gw_ifname, ip)
 
     if not mac then
-        httpd.error_403(req)
+        req:error_403()
         return
     end
 
@@ -92,21 +92,21 @@ local function http_callback_auth(req)
             local r = http.request(url)
 
             if not r then
-                httpd.error_403(req)
+                req:error_403()
                 return
             end
 
             local auth = r:match("Auth: (%d)")
             if auth == "1" then
                 allow_user(mac)
-                httpd.redirect(req, string.format("%s&mac=%s", cfg.portal_url, mac))
+                req:redirect(string.format("%s&mac=%s", cfg.portal_url, mac))
             else
-                httpd.redirect(req, string.format("%s&mac=%s", cfg.msg_url, mac))
+                req:redirect(string.format("%s&mac=%s", cfg.msg_url, mac))
                 return
             end
         end
     else
-        httpd.error_403(req)
+        req:error_403()
         return
     end
 end
@@ -117,7 +117,7 @@ local function http_callback_temppass(req)
     local mac = util.arp_get(cfg.gw_ifname, ip)
 
     if not mac then
-        httpd.error_403(req)
+        req:error_403()
         return
     end
 
@@ -128,8 +128,8 @@ local function http_callback_temppass(req)
         ["Content-Type"] = "text/plain",
         ["Content-Length"] = #script
     }
-    httpd.send_head(req, 200, headers)
-    req.socket:send(script)
+    req:send_head(200, headers)
+    req:send(script)
 
     allow_user(mac, true)
 end
@@ -138,14 +138,14 @@ local function http_callback_404(req)
     local cfg = config.get()
 
     if req.method ~= "GET" then
-        httpd.error_403(req)
+        req:error_403()
         return
     end
 
     local ip = req.host
     local mac = util.arp_get(cfg.gw_ifname, ip)
     if not mac then
-        httpd.error_403(req)
+        req:error_403()
         return
     end
 
@@ -157,7 +157,7 @@ local function http_callback_404(req)
     term = terms[mac]
 
     if is_authed_user(mac) then
-        httpd.redirect(req, string.format("%s&mac=%s", cfg.portal_url, mac))
+        req:redirect(string.format("%s&mac=%s", cfg.portal_url, mac))
         return
     end
 
@@ -171,8 +171,8 @@ local function http_callback_404(req)
                     ["Content-Type"] = "text/plain",
                     ["Content-Length"] = #content
                 }
-                httpd.send_head(req, 200, headers)
-                req.socket:send(content)
+                req:send_head(200, headers)
+                req:send(content)
                 term.apple = true
                 return
             end
@@ -192,8 +192,8 @@ local function http_callback_404(req)
         ["Content-Type"] = "text/html",
         ["Content-Length"] = #content
     }
-    httpd.send_head(req, 200, headers)
-    req.socket:send(content)
+    req:send_head(200, headers)
+    req:send(content)
 end
 
 function M.init()
