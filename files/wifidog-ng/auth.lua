@@ -17,7 +17,8 @@
   USA
  --]]
 
-local uh = require "uhttpd"
+local copas = require "copas"
+local httpd = require "wifidog-ng.httpd"
 local http = require "socket.http"
 local util = require "wifidog-ng.util"
 local config = require "wifidog-ng.config"
@@ -69,20 +70,20 @@ function M.new_term(ip, mac, token)
     end
 end
 
-local function http_callback_auth(cl)
+local function http_callback_auth(req)
     local cfg = config.get()
-    local token = cl:get_var("token")
-    local ip = cl:get_remote_addr()
+    local params = req.params
+    local token = params["token"]
+    local ip = req.host
     local mac = util.arp_get(cfg.gw_ifname, ip)
 
     if not mac then
-        uh.log(uh.LOG_ERR, "Not found macaddr for " .. ip)
-        cl:send_error(401, "Unauthorized", "Not found your macaddr")
-        return uh.REQUEST_DONE
+        httpd.error_403(req)
+        return
     end
 
     if token and #token > 0 then
-        if cl:get_var("logout") then
+        if params["logout"] then
             local url = string.format("%s&stage=logout&ip=%s&mac=%s&token=%s", cfg.auth_url, ip, mac, token)
             http.request(url)
             deny_user(mac)
@@ -91,61 +92,61 @@ local function http_callback_auth(cl)
             local r = http.request(url)
 
             if not r then
-                cl:send_error(401, "Unauthorized")
-                return uh.REQUEST_DONE
+                httpd.error_403(req)
+                return
             end
 
             local auth = r:match("Auth: (%d)")
             if auth == "1" then
                 allow_user(mac)
-                cl:redirect(302, string.format("%s&mac=%s", cfg.portal_url, mac))
+                httpd.redirect(req, string.format("%s&mac=%s", cfg.portal_url, mac))
             else
-                cl:redirect(302, string.format("%s&mac=%s", cfg.msg_url, mac))
-                return uh.REQUEST_DONE
+                httpd.redirect(req, string.format("%s&mac=%s", cfg.msg_url, mac))
+                return
             end
         end
     else
-        cl:send_error(401, "Unauthorized")
-        return uh.REQUEST_DONE
+        httpd.error_403(req)
+        return
     end
 end
 
-local function http_callback_temppass(cl)
+local function http_callback_temppass(req)
     local cfg = config.get()
-    local ip = cl:get_remote_addr()
+    local ip = req.host
     local mac = util.arp_get(cfg.gw_ifname, ip)
 
     if not mac then
-        uh.log(uh.LOG_ERR, "Not found macaddr for " .. ip)
-        cl:send_error(401, "Unauthorized", "Not found your macaddr")
-        return uh.REQUEST_DONE
+        httpd.error_403(req)
+        return
     end
 
-    local script = cl:get_var("script") or ""
+    local script = req.params["script"] or ""
 
-    cl:send_header(200, "OK", -1)
-    cl:header_end()
+    local content = "fuck you"
+    local headers = {
+        ["Content-Type"] = "text/plain",
+        ["Content-Length"] = #script
+    }
+    httpd.send_head(req, 200, headers)
+    req.socket:send(script)
+
     allow_user(mac, true)
-    cl:chunk_send(cl:get_var("script") or "");
-    cl:request_done()
-
-    return uh.REQUEST_DONE
 end
 
-local function http_callback_404(cl, path)
+local function http_callback_404(req)
     local cfg = config.get()
 
-    if cl:get_http_method() ~= uh.HTTP_METHOD_GET then
-        cl:send_error(401, "Unauthorized")
-        return uh.REQUEST_DONE
+    if req.method ~= "GET" then
+        httpd.error_403(req)
+        return
     end
 
-    local ip = cl:get_remote_addr()
+    local ip = req.host
     local mac = util.arp_get(cfg.gw_ifname, ip)
     if not mac then
-        uh.log(uh.LOG_ERR, "Not found macaddr for " .. ip)
-        cl:send_error(401, "Unauthorized", "Not found your macaddr")
-        return uh.REQUEST_DONE
+        httpd.error_403(req)
+        return
     end
 
     term = terms[mac]
@@ -156,22 +157,24 @@ local function http_callback_404(cl, path)
     term = terms[mac]
 
     if is_authed_user(mac) then
-        cl:redirect(302, "%s&mac=%s", cfg.portal_url, mac)
-        return uh.REQUEST_DONE
+        httpd.redirect(req, string.format("%s&mac=%s", cfg.portal_url, mac))
+        return
     end
 
-    cl:send_header(200, "OK", -1)
-    cl:header_end()
-
-    local header_host = cl:get_header("host")
+    local header_host = req.headers["host"]
     if apple_host[header_host] then
-        local http_ver = cl:get_http_version()
-        if http_ver == uh.HTTP_VER_10 then
+        local http_ver = req.version
+        if http_ver == "HTTP/1.0" then
             if not term.apple then
-                cl:chunk_send("fuck you")
+                local content = "fuck you"
+                local headers = {
+                    ["Content-Type"] = "text/plain",
+                    ["Content-Length"] = #content
+                }
+                httpd.send_head(req, 200, headers)
+                req.socket:send(content)
                 term.apple = true
-                cl:request_done()
-                return uh.REQUEST_DONE
+                return
             end
         end
     end
@@ -184,38 +187,34 @@ local function http_callback_404(cl, path)
         <body>Success</body></html>
         ]]
 
-    cl:chunk_send(string.format(redirect_html, cfg.login_url, ip, mac))
-    cl:request_done()
-
-    return uh.REQUEST_DONE
-end
-
-local function on_request(cl, path)
-    if path == "/wifidog/auth" then
-        return http_callback_auth(cl)
-    elseif path == "/wifidog/temppass" then
-        return http_callback_temppass(cl)
-    end
-
-    return uh.REQUEST_CONTINUE
+    local content = string.format(redirect_html, cfg.login_url, ip, mac)
+    local headers = {
+        ["Content-Type"] = "text/html",
+        ["Content-Length"] = #content
+    }
+    httpd.send_head(req, 200, headers)
+    req.socket:send(content)
 end
 
 function M.init()
     local cfg = config.get()
 
-    local srv = uh.new(cfg.gw_address, cfg.gw_port)
+    local handlers = {
+        ["404"] = http_callback_404,
+        ["/wifidog/temppass"] = http_callback_temppass,
+        ["/wifidog/auth"] = http_callback_auth
+    }
 
-    srv:on_request(on_request)
-    srv:on_error404(http_callback_404)
+    httpd.new(cfg.gw_address, cfg.gw_port, handlers)
 
-    if uh.SSL_SUPPORTED then
-        local srv_ssl = uh.new(cfg.gw_address, cfg.gw_ssl_port)
-
-        srv_ssl:ssl_init("/etc/wifidog-ng/ssl.crt", "/etc/wifidog-ng/ssl.key")
-
-        srv_ssl:on_request(on_request)
-        srv_ssl:on_error404(http_callback_404)
-    end
+    httpd.new(cfg.gw_address, cfg.gw_ssl_port, handlers, {
+        ssl = {
+            mode = "server",
+            protocol = "tlsv1_2",
+            key = "/etc/wifidog-ng/ssl.key",
+            certificate = "/etc/wifidog-ng/ssl.crt"
+        }
+    })
 end
 
 return M

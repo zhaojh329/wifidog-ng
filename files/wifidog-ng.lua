@@ -19,19 +19,12 @@
   USA
  --]]
 
-local uloop = require "uloop"
-local uh = require "uhttpd"
+local copas = require "copas"
 local auth = require "wifidog-ng.auth"
-local ubus = require "wifidog-ng.ubus"
 local version = require "wifidog-ng.version"
 local heartbeat = require "wifidog-ng.heartbeat"
 
-uh.log(uh.LOG_INFO, "Version: " .. version.string())
-
-uloop.init()
-
-ubus.init()
 auth.init()
 heartbeat.start()
 
-uloop.run()
+copas.loop()

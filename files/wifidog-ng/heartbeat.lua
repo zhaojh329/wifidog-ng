@@ -17,20 +17,17 @@
   USA
  --]]
 
-local uloop = require "uloop"
-local http = require "socket.http"
+local copas = require("copas")
+local http = require "copas.http"
 local util = require "wifidog-ng.util"
 local config = require "wifidog-ng.config"
 
 local M = {}
 
-local timer = nil
 local start_time = os.time()
 
 local function heartbeat()
     local cfg = config.get()
-
-    timer:set(1000 * cfg.checkinterval)
 
     local sysinfo = util.ubus("system", "info")
 
@@ -40,7 +37,17 @@ local function heartbeat()
 end
 
 function M.start()
-    timer = uloop.timer(heartbeat, 1000)
+    local cfg = config.get()
+    local interval = cfg.checkinterval
+
+    copas.addthread(function()
+        copas.sleep(1)
+
+        while true do
+            heartbeat()
+            copas.sleep(interval)
+        end
+    end)
 end
 
 return M
