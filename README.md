@@ -23,10 +23,7 @@ embedded linux(LEDE/Openwrt) system implemented in Lua.
 
 # Features
 * Written in Lua, so development is very efficient
-* Use epoll - Based on [libubox]: Single threaded, Fully asynchronous, No blocking operation at all
 * Use ipset and writing kernel module to implement authentication management instead of using iptables to create firewall rules
-* Support HTTPS: OpenSSL, mbedtls and CyaSSl(wolfssl)
-* Remote configuration(With the help of [rtty])
 * Support roam
 * Code structure is concise and understandable
 
