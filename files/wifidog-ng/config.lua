@@ -94,6 +94,7 @@ function M.parse()
             proto, host, port, path, s.msg_path, gw_id)
     end)
 
+    cfg.proc_flag = 0
     cfg.parsed = true
 end
 
