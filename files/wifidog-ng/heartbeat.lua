@@ -38,14 +38,13 @@ end
 
 function M.start()
     local cfg = config.get()
-    local interval = cfg.checkinterval
 
     copas.addthread(function()
         copas.sleep(1)
 
         while true do
             heartbeat()
-            copas.sleep(interval)
+            copas.sleep(cfg.checkinterval)
         end
     end)
 end
