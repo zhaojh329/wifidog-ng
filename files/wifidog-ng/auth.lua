@@ -87,6 +87,7 @@ local function http_callback_auth(req)
             local url = string.format("%s&stage=logout&ip=%s&mac=%s&token=%s", cfg.auth_url, ip, mac, token)
             http.request(url)
             deny_user(mac)
+            req:redirect(string.format("%s&ip=%s&mac=%s", cfg.login_url, ip, mac))
         else
             local url = string.format("%s&stage=login&ip=%s&mac=%s&token=%s", cfg.auth_url, ip, mac, token)
             local r = http.request(url)
