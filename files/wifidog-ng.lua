@@ -1,7 +1,7 @@
 #!/usr/bin/env lua
 
 --[[
-  Copyright (C) 2018 Jianhui Zhao <jianhuizhao329@gmail.com>
+  Copyright (C) 2018 Jianhui Zhao <zhaojh329@gmail.com>
  
   This program is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
