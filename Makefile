@@ -31,8 +31,8 @@ endef
 
 define Package/wifidog-ng/install
 	$(INSTALL_DIR) $(1)/usr/bin $(1)/etc/init.d $(1)/etc/config \
-		$(1)/etc/wifidog-ng $(1)//etc/hotplug.d/dhcp $(1)/usr/lib/lua
-	$(INSTALL_BIN) ./files//wifidog-ng.lua $(1)/usr/bin/wifidog-ng
+		$(1)/etc/wifidog-ng $(1)/etc/hotplug.d/dhcp $(1)/usr/lib/lua
+	$(INSTALL_BIN) ./files/wifidog-ng.lua $(1)/usr/bin/wifidog-ng
 	$(INSTALL_BIN) ./files/wifidog-ng.init $(1)/etc/init.d/wifidog-ng
 	$(INSTALL_CONF) ./files/wifidog-ng.config $(1)/etc/config/wifidog-ng
 	$(INSTALL_CONF) ./files/ssl.key $(1)/etc/wifidog-ng
