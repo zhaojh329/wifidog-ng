@@ -44,6 +44,7 @@ function M.parse()
         cfg.temppass_time = tonumber(temppass_time)
         cfg.gw_address = s.address
         cfg.gw_id = s.id
+        cfg.apikey = s.apikey
 
         local st = util.ubus("network.interface." .. interface, "status")
         cfg.gw_ifname = st.device
