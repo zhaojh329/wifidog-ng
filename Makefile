@@ -11,8 +11,6 @@ PKG_NAME:=wifidog-ng
 PKG_VERSION:=2.0.0
 PKG_RELEASE:=1
 
-PKG_BUILD_DIR=$(BUILD_DIR)/$(PKG_NAME)-$(BUILD_VARIANT)
-
 PKG_LICENSE:=LGPL-2.1
 PKG_LICENSE_FILES:=LICENSE
 
@@ -51,10 +49,23 @@ define KernelPackage/wifidog-ng
   FILES:=$(PKG_BUILD_DIR)/wifidog-ng.ko
 endef
 
-include $(INCLUDE_DIR)/kernel-defaults.mk
+define Build/Prepare
+	$(INSTALL_DIR) $(PKG_BUILD_DIR)
+	$(CP) ./src/. $(PKG_BUILD_DIR)
+endef
+
+KERNEL_MAKE_FLAGS?= \
+	ARCH="$(LINUX_KARCH)" \
+	CROSS_COMPILE="$(TARGET_CROSS)"
+
+MAKE_OPTS:= \
+	$(KERNEL_MAKE_FLAGS) \
+	M="$(PKG_BUILD_DIR)"
 
 define Build/Compile
-	$(MAKE) $(KERNEL_MAKEOPTS) SUBDIRS="$(PKG_BUILD_DIR)" modules
+	$(MAKE) -C "$(LINUX_DIR)" \
+		$(MAKE_OPTS) \
+		modules
 endef
 
 $(eval $(call BuildPackage,wifidog-ng))
