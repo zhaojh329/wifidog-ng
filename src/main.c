@@ -162,7 +162,7 @@ static int __init wifidog_init(void)
         goto remove_config;
     }
 
-    pr_info("kmod of wifidog is started\n");
+    pr_info("wifidog-ng: Copyright (C) 2017 jianhui zhao <zhaojh329@gmail.com>\n");
 
     return 0;
 
@@ -180,8 +180,6 @@ static void __exit wifidog_exit(void)
 #else
     nf_unregister_hook(&wifidog_ops);
 #endif
-
-    pr_info("kmod of wifidog-ng is stop\n");
 }
 
 module_init(wifidog_init);

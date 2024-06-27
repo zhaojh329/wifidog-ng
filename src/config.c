@@ -27,7 +27,7 @@ static int update_gw_interface(const char *interface)
 
     dev = dev_get_by_name(&init_net, interface);
     if (!dev) {
-        pr_err("Not found interface: %s\n", interface);
+        pr_err("wifidog-ng: Not found interface: %s\n", interface);
         return -ENOENT;
     }
 
@@ -35,7 +35,7 @@ static int update_gw_interface(const char *interface)
 
     in_dev = inetdev_by_index(dev_net(dev), conf.interface_ifindex);
     if (!in_dev) {
-        pr_err("Not found in_dev on %s\n", interface);
+        pr_err("wifidog-ng: Not found in_dev on %s\n", interface);
         ret = -ENOENT;
         goto QUIT;
     }
@@ -49,7 +49,7 @@ static int update_gw_interface(const char *interface)
         conf.interface_mask = ifa->ifa_mask;
         conf.interface_broadcast = ifa->ifa_broadcast;
 
-        pr_info("Found ip from %s: %pI4\n", interface, &conf.interface_ipaddr);
+        pr_info("wifidog-ng: Found ip from %s: %pI4\n", interface, &conf.interface_ipaddr);
         break;
     }
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
@@ -113,7 +113,7 @@ static ssize_t proc_config_write(struct file *file, const char __user *buf, size
             conf.enabled = simple_strtol(value, NULL, 0);
             if (conf.enabled)
                 update = 1;
-            pr_info("wifidog %s\n", conf.enabled ? "enabled" : "disabled");
+            pr_info("wifidog-ng: %s\n", conf.enabled ? "enabled" : "disabled");
         } else if (!strcmp(key, "interface")) {
             strncpy(conf.interface, value, sizeof(conf.interface) - 1);
             update = 1;
@@ -166,12 +166,12 @@ int init_config(void)
 
     proc = proc_mkdir(PROC_DIR_NAME, NULL);
     if (!proc) {
-        pr_err("can't create dir /proc/"PROC_DIR_NAME"/\n");
+        pr_err("wifidog-ng: can't create dir /proc/"PROC_DIR_NAME"/\n");
         return -ENODEV;;
     }
 
     if (!proc_create("config", 0644, proc, &proc_config_ops)) {
-        pr_err("can't create file /proc/"PROC_DIR_NAME"/config\n");
+        pr_err("wifidog-ng: can't create file /proc/"PROC_DIR_NAME"/config\n");
         ret = -EINVAL;
         goto remove;
     }
