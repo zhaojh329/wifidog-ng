@@ -15,6 +15,10 @@
 #include <linux/udp.h>
 #include <net/netfilter/nf_nat.h>
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+#include <net/netfilter/nf_nat_l3proto.h>
+#endif
+
 #include "utils.h"
 #include "config.h"
 
