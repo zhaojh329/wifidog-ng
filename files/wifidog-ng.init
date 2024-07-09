@@ -28,7 +28,7 @@ start_wifidog() {
     ipset -! create wifidog-ng-ip hash:ip
 
     modprobe wifidog-ng
-    echo "enabled=1" > /proc/wifidog-ng/config
+    echo "enabled=1" > /proc/net/wifidog-ng/config
     
     procd_open_instance
     procd_set_param command $BIN
