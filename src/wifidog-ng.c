@@ -358,7 +358,7 @@ static struct nf_hook_ops wifidog_ops __read_mostly = {
     .hook       = wifidog_hook,
     .pf         = PF_INET,
     .hooknum    = NF_INET_PRE_ROUTING,
-    .priority   = NF_IP_PRI_NAT_DST
+    .priority   = NF_IP_PRI_NAT_DST - 1
 };
 
 static int __net_init wd_net_init(struct net *net)
