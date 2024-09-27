@@ -22,6 +22,7 @@ local httpd = require "wifidog-ng.httpd"
 local http = require "socket.http"
 local util = require "wifidog-ng.util"
 local config = require "wifidog-ng.config"
+local json = require "luci.json"
 
 local M = {}
 
@@ -213,11 +214,6 @@ local function http_callback_ctl(req)
                 new_term(ip, mac, token)
             end
         end
-    elseif op == "kick" then
-        local mac = params["mac"]
-        if mac then
-            deny_user(mac)
-        end
     elseif op == "reload" then
         config.reload()
     end
@@ -231,6 +227,58 @@ local function http_callback_ctl(req)
     req:send(content)
 end
 
+local function http_callback_api(req)
+    local params = req.params
+    
+    local content = nil
+    local apikey = config.get().apikey
+    
+    if apikey and #apikey > 0 then
+        local key = params["key"]
+        if not key then
+            content = json.encode({code = 10001, msg = "Api key is empty"})
+        elseif key ~= config.get().apikey then
+            content = json.encode({code = 10002, msg = "Api key is error"})
+        end
+        if content then
+            local headers = {
+                ["Content-Type"] = "application/json",
+                ["Content-Length"] = #content
+            }
+            req:send_head(200, headers)
+            req:send(content)
+            return
+        end
+    end
+    
+    local op = params["op"]
+    
+    if op == "kick" then
+        local mac = params["mac"]
+        if mac then
+            deny_user(mac)
+        end
+        content = json.encode({code = 0})
+    elseif op == "add" then
+        local mac = params["mac"]
+        if mac then
+            os.execute("ipset add wifidog-ng-mac " .. mac)
+        end
+        content = json.encode({code = 0})
+    elseif op == "show" then
+        content = json.encode({code = 0, terms = M.get_terms()})
+    else
+        content = json.encode({code = 10003, msg = "no such operate"})
+    end
+
+    local headers = {
+        ["Content-Type"] = "application/json",
+        ["Content-Length"] = #content
+    }
+    req:send_head(200, headers)
+    req:send(content)
+end
+
 function M.init()
     local cfg = config.get()
 
@@ -238,7 +286,8 @@ function M.init()
         ["404"] = http_callback_404,
         ["/wifidog/temppass"] = http_callback_temppass,
         ["/wifidog/auth"] = http_callback_auth,
-        ["/wifidog/ctl"] = http_callback_ctl
+        ["/wifidog/ctl"] = http_callback_ctl,
+        ["/wifidog/api"] = http_callback_api
     }
 
     httpd.new(cfg.gw_address, cfg.gw_port, handlers)
