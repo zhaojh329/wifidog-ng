@@ -33,7 +33,19 @@ local function heartbeat()
 
     local url = string.format("%s&sys_uptime=%d&sys_memfree=%d&sys_load=%d&wifidog_uptime=%d",
         cfg.ping_url, sysinfo.uptime, sysinfo.memory.free, sysinfo.load[1], os.time() - start_time)
-    http.request(url)
+    local r = http.request(url)
+    
+    if not r or #r < 4 or r:sub(0, 4) ~= 'Pong' then
+        if cfg.proc_flag ~= 1 then
+            cfg.proc_flag = 1
+            os.execute("echo 'enabled=0' > /proc/wifidog-ng/config")
+        end
+    else
+        if cfg.proc_flag ~= 2 then
+            cfg.proc_flag = 2
+            os.execute("echo 'enabled=1' > /proc/wifidog-ng/config")
+        end
+    end
 end
 
 function M.start()
