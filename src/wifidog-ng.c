@@ -389,6 +389,9 @@ static int __net_init wd_net_init(struct net *net)
     struct wifidog_net *wd = net_generic(net, wd_net_id);
     int ret;
 
+    if (!wd)
+        return -EINVAL;
+
     wd->net = net;
     wd->interface_ifindex = -1;
     wd->port = htons(2060);
